@@ -48,28 +48,35 @@ export function PhotoUploadStep({
   );
 
   // Convex mutations
-  const generateUploadUrl = useMutation(api.users.mutations.generateUploadUrl);
-  const saveUserImage = useMutation(api.users.mutations.saveUserImage);
+  const generateUploadUrl = useMutation(
+    api.userImages.mutations.generateOnboardingUploadUrl,
+  );
+  const saveUserImage = useMutation(
+    api.userImages.mutations.saveOnboardingImage,
+  );
 
-  // Check for existing images
-  const existingImages = useQuery(api.users.queries.getUserImages);
+  // Check for existing images via onboarding token (rehydration)
+  const existingImages = useQuery(api.userImages.queries.getOnboardingImages, {
+    onboardingToken: formData.onboardingToken,
+  });
 
   const totalPhotos = formData.uploadedImages.length + uploadingPhotos.length;
 
   // Handle existing images prompt
   const hasExistingImages = existingImages && existingImages.length > 0;
-  const needsExistingChoice = hasExistingImages && showExistingChoice === null;
+  const needsExistingChoice =
+    hasExistingImages &&
+    showExistingChoice === null &&
+    formData.uploadedImages.length === 0;
 
   const handleUseExisting = () => {
     if (existingImages) {
-      const uploaded: UploadedImage[] = existingImages.map(
-        (img: ExistingImage) => ({
-          imageId: img._id,
-          storageId: "",
-          filename: img.filename || "existing.jpg",
-          previewUrl: img.url || "",
-        }),
-      );
+      const uploaded: UploadedImage[] = existingImages.map((img) => ({
+        imageId: img._id,
+        storageId: img.storageId,
+        filename: img.filename || "existing.jpg",
+        previewUrl: img.url || "",
+      }));
       updateFormData({ uploadedImages: uploaded });
     }
     setShowExistingChoice(true);
@@ -118,8 +125,10 @@ export function PhotoUploadStep({
       setUploadingPhotos((prev) => [...prev, photo]);
 
       try {
-        // Get upload URL from Convex
-        const uploadUrl = await generateUploadUrl();
+        // Get upload URL using onboarding token
+        const uploadUrl = await generateUploadUrl({
+          onboardingToken: formData.onboardingToken,
+        });
 
         // Fetch the local file as blob
         const response = await fetch(asset.uri);
@@ -144,12 +153,12 @@ export function PhotoUploadStep({
         });
         const { storageId } = await uploadResponse.json();
 
-        // Save the image record
+        // Save the image record with onboarding token
         const imageId = await saveUserImage({
           storageId,
           filename: asset.fileName || "photo.jpg",
           onboardingToken: formData.onboardingToken,
-          isPrimary: formData.uploadedImages.length === 0,
+          imageType: "full_body", // Default to full_body for onboarding
         });
 
         // Update form data

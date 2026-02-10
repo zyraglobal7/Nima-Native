@@ -13,6 +13,7 @@ import type * as admin_analytics from "../admin/analytics.js";
 import type * as admin_items from "../admin/items.js";
 import type * as admin_migrations from "../admin/migrations.js";
 import type * as admin_queries from "../admin/queries.js";
+import type * as auth from "../auth.js";
 import type * as cart_mutations from "../cart/mutations.js";
 import type * as cart_queries from "../cart/queries.js";
 import type * as chat_actions from "../chat/actions.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   "admin/items": typeof admin_items;
   "admin/migrations": typeof admin_migrations;
   "admin/queries": typeof admin_queries;
+  auth: typeof auth;
   "cart/mutations": typeof cart_mutations;
   "cart/queries": typeof cart_queries;
   "chat/actions": typeof chat_actions;
@@ -507,6 +509,69 @@ export declare const components: {
             state?: any;
             workflowHandle: string;
           };
+        }
+      >;
+      list: FunctionReference<
+        "query",
+        "internal",
+        {
+          order: "asc" | "desc";
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            args: any;
+            context?: any;
+            name?: string;
+            runResult?:
+              | { kind: "success"; returnValue: any }
+              | { error: string; kind: "failed" }
+              | { kind: "canceled" };
+            workflowId: string;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
+      listByName: FunctionReference<
+        "query",
+        "internal",
+        {
+          name: string;
+          order: "asc" | "desc";
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            args: any;
+            context?: any;
+            name?: string;
+            runResult?:
+              | { kind: "success"; returnValue: any }
+              | { error: string; kind: "failed" }
+              | { kind: "canceled" };
+            workflowId: string;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
         }
       >;
       listSteps: FunctionReference<

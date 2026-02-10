@@ -20,6 +20,7 @@ import {
   CormorantGaramond_700Bold,
 } from "@expo-google-fonts/cormorant-garamond";
 import { ThemeProvider } from "@/lib/contexts/ThemeContext";
+import { UserProvider } from "@/lib/contexts/UserContext";
 import { useAuthFromWorkOS } from "@/lib/auth";
 import { UserDataSync } from "@/components/UserDataSync";
 
@@ -59,108 +60,110 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
-          <UserDataSync />
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "#FAF8F5" },
-              animation: "slide_from_right",
-            }}
-          >
-            {/* Tab navigator */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-            {/* Auth screens — presented as modals */}
-            <Stack.Screen
-              name="(auth)"
-              options={{
+          <UserProvider>
+            <UserDataSync />
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
                 headerShown: false,
-                presentation: "modal",
+                contentStyle: { backgroundColor: "#FAF8F5" },
+                animation: "slide_from_right",
               }}
-            />
+            >
+              {/* Tab navigator */}
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-            {/* Onboarding — full screen, no back gesture */}
-            <Stack.Screen
-              name="onboarding"
-              options={{
-                headerShown: false,
-                gestureEnabled: false,
-              }}
-            />
+              {/* Auth screens — presented as modals */}
+              <Stack.Screen
+                name="(auth)"
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+              />
 
-            {/* Detail screens — stack push */}
-            <Stack.Screen
-              name="product/[id]"
-              options={{ headerShown: true, title: "" }}
-            />
-            <Stack.Screen
-              name="look/[id]"
-              options={{ headerShown: true, title: "" }}
-            />
-            <Stack.Screen
-              name="fitting/[sessionId]"
-              options={{ headerShown: true, title: "Fitting Room" }}
-            />
-            <Stack.Screen
-              name="lookbook/[id]"
-              options={{ headerShown: true, title: "" }}
-            />
-            <Stack.Screen
-              name="ask/[chatId]"
-              options={{ headerShown: true, title: "Ask Nima" }}
-            />
-            <Stack.Screen
-              name="discover/category/[category]"
-              options={{ headerShown: true, title: "" }}
-            />
-            <Stack.Screen
-              name="discover/gender/[gender]"
-              options={{ headerShown: true, title: "" }}
-            />
+              {/* Onboarding — full screen, no back gesture */}
+              <Stack.Screen
+                name="onboarding"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false,
+                }}
+              />
 
-            {/* Utility screens */}
-            <Stack.Screen
-              name="cart"
-              options={{ headerShown: true, title: "Cart" }}
-            />
-            <Stack.Screen
-              name="checkout"
-              options={{ headerShown: true, title: "Checkout" }}
-            />
-            <Stack.Screen
-              name="orders/index"
-              options={{ headerShown: true, title: "Orders" }}
-            />
-            <Stack.Screen
-              name="orders/[id]"
-              options={{ headerShown: true, title: "Order Details" }}
-            />
-            <Stack.Screen
-              name="messages/index"
-              options={{ headerShown: true, title: "Messages" }}
-            />
-            <Stack.Screen
-              name="messages/[userId]"
-              options={{ headerShown: true, title: "" }}
-            />
-            <Stack.Screen
-              name="activity"
-              options={{ headerShown: true, title: "Activity" }}
-            />
-            <Stack.Screen
-              name="explore"
-              options={{ headerShown: true, title: "Explore" }}
-            />
-            <Stack.Screen
-              name="profile/discarded-looks"
-              options={{ headerShown: true, title: "Discarded Looks" }}
-            />
-            <Stack.Screen
-              name="profile/settings"
-              options={{ headerShown: true, title: "Settings" }}
-            />
-          </Stack>
+              {/* Detail screens — stack push */}
+              <Stack.Screen
+                name="product/[id]"
+                options={{ headerShown: true, title: "" }}
+              />
+              <Stack.Screen
+                name="look/[id]"
+                options={{ headerShown: true, title: "" }}
+              />
+              <Stack.Screen
+                name="fitting/[sessionId]"
+                options={{ headerShown: true, title: "Fitting Room" }}
+              />
+              <Stack.Screen
+                name="lookbook/[id]"
+                options={{ headerShown: true, title: "" }}
+              />
+              <Stack.Screen
+                name="ask/[chatId]"
+                options={{ headerShown: true, title: "Ask Nima" }}
+              />
+              <Stack.Screen
+                name="discover/category/[category]"
+                options={{ headerShown: true, title: "" }}
+              />
+              <Stack.Screen
+                name="discover/gender/[gender]"
+                options={{ headerShown: true, title: "" }}
+              />
+
+              {/* Utility screens */}
+              <Stack.Screen
+                name="cart"
+                options={{ headerShown: true, title: "Cart" }}
+              />
+              <Stack.Screen
+                name="checkout"
+                options={{ headerShown: true, title: "Checkout" }}
+              />
+              <Stack.Screen
+                name="orders/index"
+                options={{ headerShown: true, title: "Orders" }}
+              />
+              <Stack.Screen
+                name="orders/[id]"
+                options={{ headerShown: true, title: "Order Details" }}
+              />
+              <Stack.Screen
+                name="messages/index"
+                options={{ headerShown: true, title: "Messages" }}
+              />
+              <Stack.Screen
+                name="messages/[userId]"
+                options={{ headerShown: true, title: "" }}
+              />
+              <Stack.Screen
+                name="activity"
+                options={{ headerShown: true, title: "Activity" }}
+              />
+              <Stack.Screen
+                name="explore"
+                options={{ headerShown: true, title: "Explore" }}
+              />
+              <Stack.Screen
+                name="profile/discarded-looks"
+                options={{ headerShown: true, title: "Discarded Looks" }}
+              />
+              <Stack.Screen
+                name="profile/settings"
+                options={{ headerShown: true, title: "Settings" }}
+              />
+            </Stack>
+          </UserProvider>
         </ConvexProviderWithAuth>
       </ThemeProvider>
     </SafeAreaProvider>

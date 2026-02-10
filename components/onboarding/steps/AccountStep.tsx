@@ -109,7 +109,7 @@ export function AccountStep({ formData, onNext, onBack }: StepProps) {
 
       // Launch WorkOS auth
       const result = await launchWorkOSAuth("sign-up");
-      if (result.type === "success") {
+      if (result) {
         onNext();
       } else {
         setError("Sign-in was cancelled. Please try again.");

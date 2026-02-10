@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Crypto from 'expo-crypto';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '@/convex/_generated/api';
 import {
   getAccessToken,
   setAccessToken,
@@ -234,6 +236,9 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
     const codeChallenge = await createCodeChallenge(codeVerifier);
 
     // Build authorization URL
+    console.log('[AUTH] Using Redirect URI:', REDIRECT_URI);
+    console.log('[AUTH] Client ID:', WORKOS_CLIENT_ID);
+
     const params = new URLSearchParams({
       client_id: WORKOS_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
@@ -262,25 +267,17 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
       return null;
     }
 
-    // Exchange code for tokens
-    const tokenResponse = await fetch(WORKOS_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: WORKOS_CLIENT_ID,
-        grant_type: 'authorization_code',
-        code,
-        code_verifier: codeVerifier,
-      }),
+    // Exchange code for tokens via Convex Action (avoids CORS)
+    // We use a temporary ConvexHttpClient here since this is a standalone function
+    // outside of the React component tree.
+    const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+    
+    // Call the action defined in convex/auth.ts
+    const tokenData = await convex.action(api.auth.exchangeWorkOSCode, {
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri: REDIRECT_URI,
     });
-
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('[AUTH] Token exchange failed:', tokenResponse.status, errorData);
-      return null;
-    }
-
-    const tokenData = await tokenResponse.json();
 
     const accessToken: string = tokenData.access_token;
     const refreshTokenValue: string = tokenData.refresh_token;
