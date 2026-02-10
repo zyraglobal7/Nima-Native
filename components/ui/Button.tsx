@@ -70,8 +70,8 @@ export function Button({
       textStyles += " text-base";
       break;
     case "lg":
-      sizeStyles = "h-14 px-8";
-      textStyles += " text-lg";
+      sizeStyles = "h-14 px-6";
+      textStyles += " text-base tracking-wider";
       break;
     case "icon":
       sizeStyles = "h-10 w-10";

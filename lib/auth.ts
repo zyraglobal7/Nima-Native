@@ -55,22 +55,14 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   refreshToken: string;
 } | null> {
   try {
-    const response = await fetch(WORKOS_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: WORKOS_CLIENT_ID,
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-      }),
+    // Use Convex action to refresh token (avoids CORS)
+    const convex = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+    
+    // Call the action defined in convex/auth.ts
+    const data = await convex.action(api.auth.refreshWorkOSToken, {
+        refreshToken,
     });
 
-    if (!response.ok) {
-      console.error('[AUTH] Token refresh failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,

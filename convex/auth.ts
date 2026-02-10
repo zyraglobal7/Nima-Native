@@ -47,3 +47,39 @@ export const exchangeWorkOSCode = action({
     return data;
   },
 });
+
+/**
+ * Refresh a WorkOS access token using a refresh token.
+ * This is done server-side to avoid CORS issues on the client (web).
+ */
+export const refreshWorkOSToken = action({
+  args: {
+    refreshToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const clientId = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID;
+
+    if (!clientId) {
+      throw new Error('Missing EXPO_PUBLIC_WORKOS_CLIENT_ID in Convex env vars');
+    }
+
+    const response = await fetch(WORKOS_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        grant_type: 'refresh_token',
+        refresh_token: args.refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('WorkOS Token Refresh Failed:', response.status, errorText);
+      throw new Error(`Token refresh failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  },
+});

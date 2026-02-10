@@ -28,7 +28,7 @@ export function Text({
 
   switch (variant) {
     case "h1":
-      variantApi = "text-4xl font-serif font-bold text-foreground";
+      variantApi = "text-4xl font-serif font-semibold text-foreground";
       break;
     case "h2":
       variantApi = "text-3xl font-serif font-semibold text-foreground";

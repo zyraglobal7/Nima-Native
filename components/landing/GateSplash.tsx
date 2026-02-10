@@ -7,7 +7,6 @@ import { ChatBubble } from "./ChatBubble";
 import { useRouter } from "expo-router";
 import { launchWorkOSAuth } from "@/lib/auth";
 
-
 interface GateSplashProps {
   onGetStarted?: () => void;
 }
@@ -66,18 +65,18 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
     outputRange: [0.3, 0.6, 0.4],
   });
 
-    const handleSignIn = async () => {
-      try {
-        const result = await launchWorkOSAuth("sign-in");
-        if (result) {
-          // Auth successful — navigate to main app
-          router.replace("/(tabs)/discover");
-        }
-        // If result is null, user cancelled — do nothing
-      } catch (err) {
-        console.error("[SIGN_IN] Error:", err);
+  const handleSignIn = async () => {
+    try {
+      const result = await launchWorkOSAuth("sign-in");
+      if (result) {
+        // Auth successful — navigate to main app
+        router.replace("/(tabs)/discover");
       }
-    };
+      // If result is null, user cancelled — do nothing
+    } catch (err) {
+      console.error("[SIGN_IN] Error:", err);
+    }
+  };
 
   return (
     <View className="flex-1 bg-background relative overflow-hidden">
@@ -85,12 +84,21 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
       {/* We use absolute positioned views with gradients to simulate the CSS radial gradients */}
 
       {/* Secondary Gradient Orb (Bottom/Rising) */}
+      {/* Secondary Gradient Orb (Bottom/Rising) */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: sunOpacity }]}>
+        {/* Layer 1: Deep Burgundy Glow at very bottom */}
+        <LinearGradient
+          colors={["transparent", "rgba(92, 42, 51, 0.2)"]} // Primary
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 0.5, y: 1 }}
+        />
+        {/* Layer 2: Camel/Gold Rising Sun Effect */}
         <LinearGradient
           colors={[
             "transparent",
-            "rgba(166, 124, 82, 0.2)",
-            "rgba(201, 160, 122, 0.3)",
+            "rgba(166, 124, 82, 0.15)", // Secondary
+            "rgba(201, 160, 122, 0.2)", // Rose Gold
           ]}
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0 }}
@@ -121,7 +129,7 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
             >
               Nima
             </Text>
-            <Text className="text-xs uppercase tracking-[0.3em] text-muted-foreground mt-2 font-light">
+            <Text className="text-sm uppercase tracking-[0.3em] text-muted-foreground mt-2 font-light">
               AI Stylist
             </Text>
           </View>
@@ -133,7 +141,7 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
 
           {/* Tagline */}
           <View className="items-center mb-12 space-y-3">
-            <Text variant="h3" className="text-center leading-8">
+            <Text className="text-center leading-8 text-xl font-serif font-medium text-foreground">
               Your personal AI stylist.
             </Text>
             <Text
@@ -145,7 +153,7 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
           </View>
 
           {/* Actions */}
-          <View className="w-full max-w-xs space-y-4">
+          <View className="w-full max-w-[18rem] space-y-4">
             <Button
               size="lg"
               label="Get Started"
