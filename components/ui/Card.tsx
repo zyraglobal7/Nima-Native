@@ -11,13 +11,16 @@ export function Card({ className, variant = "surface", ...props }: CardProps) {
 
   switch (variant) {
     case "surface":
-      variantStyles = "bg-surface border border-border";
+      variantStyles =
+        "bg-surface dark:bg-surface-dark border border-border dark:border-border-dark";
       break;
     case "surface-alt":
-      variantStyles = "bg-surface-alt border border-border";
+      variantStyles =
+        "bg-surface-alt dark:bg-surface-alt-dark border border-border dark:border-border-dark";
       break;
     case "glass":
-      variantStyles = "bg-surface/90 border border-border/50"; // Backdrop blur logic needs Reanimated/Expo Blur if strict
+      variantStyles =
+        "bg-surface/90 dark:bg-surface-dark/90 border border-border/50 dark:border-border-dark/50"; // Backdrop blur logic needs Reanimated/Expo Blur if strict
       break;
   }
 

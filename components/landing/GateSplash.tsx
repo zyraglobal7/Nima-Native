@@ -79,7 +79,7 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
   };
 
   return (
-    <View className="flex-1 bg-background relative overflow-hidden">
+    <View className="flex-1 bg-background dark:bg-background-dark relative overflow-hidden">
       {/* Animated Background Layers */}
       {/* We use absolute positioned views with gradients to simulate the CSS radial gradients */}
 

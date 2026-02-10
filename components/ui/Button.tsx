@@ -38,23 +38,27 @@ export function Button({
   switch (variant) {
     case "default":
       variantStyles = "bg-primary active:opacity-90";
-      textStyles = "text-primary-foreground font-medium";
+      textStyles =
+        "text-primary-foreground dark:text-primary-dark-foreground font-medium";
       break;
     case "secondary":
       variantStyles = "bg-secondary active:opacity-90";
-      textStyles = "text-secondary-foreground font-medium";
+      textStyles =
+        "text-secondary-foreground dark:text-secondary-dark-foreground font-medium";
       break;
     case "outline":
-      variantStyles = "border border-border bg-transparent active:bg-muted/10";
-      textStyles = "text-foreground font-medium";
+      variantStyles =
+        "border border-border dark:border-border-dark bg-transparent active:bg-muted/10";
+      textStyles = "text-foreground dark:text-foreground-dark font-medium";
       break;
     case "ghost":
       variantStyles = "bg-transparent active:bg-muted/10";
-      textStyles = "text-foreground font-medium";
+      textStyles = "text-foreground dark:text-foreground-dark font-medium";
       break;
     case "destructive":
       variantStyles = "bg-destructive active:opacity-90";
-      textStyles = "text-destructive-foreground font-medium";
+      textStyles =
+        "text-destructive-foreground dark:text-destructive-dark-foreground font-medium";
       break;
   }
 

@@ -21,7 +21,7 @@ export const Input = forwardRef<TextInput, InputProps>(
         <TextInput
           ref={ref}
           className={cn(
-            "h-12 w-full rounded-xl border border-input bg-background px-4 py-2 text-foreground font-sans text-base",
+            "h-12 w-full rounded-xl border border-input dark:border-input-dark bg-background dark:bg-background-dark px-4 py-2 text-foreground dark:text-foreground-dark font-sans text-base",
             "placeholder:text-text-muted focus:border-ring focus:border-2",
             error && "border-destructive",
             className,

@@ -28,28 +28,36 @@ export function Text({
 
   switch (variant) {
     case "h1":
-      variantApi = "text-4xl font-serif font-semibold text-foreground";
+      variantApi =
+        "text-4xl font-serif font-semibold text-foreground dark:text-foreground-dark";
       break;
     case "h2":
-      variantApi = "text-3xl font-serif font-semibold text-foreground";
+      variantApi =
+        "text-3xl font-serif font-semibold text-foreground dark:text-foreground-dark";
       break;
     case "h3":
-      variantApi = "text-2xl font-serif font-semibold text-foreground";
+      variantApi =
+        "text-2xl font-serif font-semibold text-foreground dark:text-foreground-dark";
       break;
     case "h4":
-      variantApi = "text-xl font-serif font-medium text-foreground";
+      variantApi =
+        "text-xl font-serif font-medium text-foreground dark:text-foreground-dark";
       break;
     case "large":
-      variantApi = "text-lg font-sans text-foreground";
+      variantApi =
+        "text-lg font-sans text-foreground dark:text-foreground-dark";
       break;
     case "muted":
-      variantApi = "text-sm font-sans text-muted-foreground";
+      variantApi =
+        "text-sm font-sans text-muted-foreground dark:text-muted-dark-foreground";
       break;
     case "caption":
-      variantApi = "text-xs font-sans text-muted-foreground";
+      variantApi =
+        "text-xs font-sans text-muted-foreground dark:text-muted-dark-foreground";
       break;
     default:
-      variantApi = "text-base font-sans text-foreground";
+      variantApi =
+        "text-base font-sans text-foreground dark:text-foreground-dark";
       break;
   }
 
