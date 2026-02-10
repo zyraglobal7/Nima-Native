@@ -483,7 +483,78 @@ export const isItemSaved = query({
 });
 
 /**
- * Get lookbook with cover image URL
+ * Check if a specific try-on result is saved in "Tried On Looks"
+ */
+export const isTryOnSaved = query({
+  args: {
+    itemTryOnId: v.id('item_try_ons'),
+  },
+  returns: v.boolean(),
+  handler: async (
+    ctx: QueryCtx,
+    args: { itemTryOnId: Id<'item_try_ons'> }
+  ): Promise<boolean> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', identity.subject))
+      .unique();
+
+    if (!user) {
+      return false;
+    }
+
+    // Get the try-on to get its storageId
+    const tryOn = await ctx.db.get(args.itemTryOnId);
+    if (!tryOn || !tryOn.storageId) {
+      return false;
+    }
+
+    // Find "Tried On Looks" lookbook
+    const triedOnLookbook = await ctx.db
+      .query('lookbooks')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .filter((q) => q.eq(q.field('name'), 'Tried On Looks'))
+      .first();
+
+    if (!triedOnLookbook) {
+      return false;
+    }
+
+    // Get all items in this lookbook
+    const lookbookItems = await ctx.db
+      .query('lookbook_items')
+      .withIndex('by_lookbook', (q) => q.eq('lookbookId', triedOnLookbook._id))
+      .collect();
+
+    // Check if any of these items are looks that have the same image as the try-on
+    // This is a bit inefficient if lookbook is huge, but "Tried On" shouldn't be massive
+    // and we only check look items
+    for (const item of lookbookItems) {
+      if (item.itemType === 'look' && item.lookId) {
+        // Check if this look uses the try-on image
+        const lookImage = await ctx.db
+          .query('look_images')
+          .withIndex('by_look', (q) => q.eq('lookId', item.lookId!)) // Use '!' since we checked item.lookId
+          .filter((q) => q.eq(q.field('storageId'), tryOn.storageId))
+          .first();
+        
+        if (lookImage) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  },
+});
+
+/**
+ * Get lookbook with cover image URL and item preview images
  */
 export const getLookbookWithCover = query({
   args: {
@@ -493,6 +564,7 @@ export const getLookbookWithCover = query({
     v.object({
       lookbook: lookbookValidator,
       coverImageUrl: v.union(v.string(), v.null()),
+      itemImageUrls: v.array(v.string()),
     }),
     v.null()
   ),
@@ -502,6 +574,7 @@ export const getLookbookWithCover = query({
   ): Promise<{
     lookbook: Doc<'lookbooks'>;
     coverImageUrl: string | null;
+    itemImageUrls: string[];
   } | null> => {
     const lookbook = await ctx.db.get(args.lookbookId);
     if (!lookbook) {
@@ -509,6 +582,7 @@ export const getLookbookWithCover = query({
     }
 
     let coverImageUrl: string | null = null;
+    const itemImageUrls: string[] = [];
 
     // Try custom cover image first
     if (lookbook.coverImageId) {
@@ -532,9 +606,54 @@ export const getLookbookWithCover = query({
       }
     }
 
+    // Fetch first 4 items from lookbook for preview grid
+    const lookbookItems = await ctx.db
+      .query('lookbook_items')
+      .withIndex('by_lookbook', (q) => q.eq('lookbookId', lookbook._id))
+      .order('asc')
+      .take(4);
+
+    // Get images for each item
+    for (const lookbookItem of lookbookItems) {
+      let imageUrl: string | null = null;
+      
+      if (lookbookItem.itemType === 'item' && lookbookItem.itemId) {
+        // Get item's primary image
+        const primaryImage = await ctx.db
+          .query('item_images')
+          .withIndex('by_item_and_primary', (q) =>
+            q.eq('itemId', lookbookItem.itemId!).eq('isPrimary', true)
+          )
+          .unique();
+
+        if (primaryImage) {
+          if (primaryImage.storageId) {
+            imageUrl = await ctx.storage.getUrl(primaryImage.storageId);
+          } else if (primaryImage.externalUrl) {
+            imageUrl = primaryImage.externalUrl;
+          }
+        }
+      } else if (lookbookItem.itemType === 'look' && lookbookItem.lookId) {
+        // Get look's generated image from look_images table
+        const lookImage = await ctx.db
+          .query('look_images')
+          .withIndex('by_look', (q) => q.eq('lookId', lookbookItem.lookId!))
+          .first();
+
+        if (lookImage?.storageId) {
+          imageUrl = await ctx.storage.getUrl(lookImage.storageId);
+        }
+      }
+
+      if (imageUrl) {
+        itemImageUrls.push(imageUrl);
+      }
+    }
+
     return {
       lookbook,
       coverImageUrl,
+      itemImageUrls,
     };
   },
 });

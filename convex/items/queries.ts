@@ -13,7 +13,8 @@ const categoryValidator = v.union(
   v.literal('shoes'),
   v.literal('accessory'),
   v.literal('bag'),
-  v.literal('jewelry')
+  v.literal('jewelry'),
+  v.literal('swimwear')
 );
 
 // Validator for item gender
@@ -114,7 +115,7 @@ export const listItems = query({
   handler: async (
     ctx: QueryCtx,
     args: {
-      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry' | 'swimwear';
       gender?: 'male' | 'female' | 'unisex';
       limit?: number;
       cursor?: string;
@@ -127,18 +128,18 @@ export const listItems = query({
     const limit = Math.min(args.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
 
     let query;
-    if (args.gender && args.category) {
-      query = ctx.db
-        .query('items')
-        .withIndex('by_gender_and_category', (q) =>
-          q.eq('gender', args.gender!).eq('category', args.category!)
-        );
-    } else if (args.category) {
+    if (args.category) {
       query = ctx.db
         .query('items')
         .withIndex('by_active_and_category', (q) =>
           q.eq('isActive', true).eq('category', args.category!)
         );
+      
+      if (args.gender) {
+        query = query.filter((q) => 
+          q.or(q.eq(q.field('gender'), args.gender), q.eq(q.field('gender'), 'unisex'))
+        );
+      }
     } else if (args.gender) {
       query = ctx.db
         .query('items')
@@ -179,14 +180,14 @@ export const searchItems = query({
     ctx: QueryCtx,
     args: {
       searchQuery: string;
-      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry' | 'swimwear';
       gender?: 'male' | 'female' | 'unisex';
       limit?: number;
     }
   ): Promise<Doc<'items'>[]> => {
     const limit = Math.min(args.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
 
-    let searchQuery = ctx.db
+    const searchQuery = ctx.db
       .query('items')
       .withSearchIndex('search_items', (q) => {
         let search = q.search('name', args.searchQuery);
@@ -413,7 +414,7 @@ export const listItemsWithImages = query({
   handler: async (
     ctx: QueryCtx,
     args: {
-      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry' | 'swimwear';
       gender?: 'male' | 'female' | 'unisex';
       limit?: number;
       cursor?: string;
@@ -426,7 +427,7 @@ export const listItemsWithImages = query({
       name: string;
       brand?: string;
       description?: string;
-      category: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+      category: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry' | 'swimwear';
       gender: 'male' | 'female' | 'unisex';
       price: number;
       currency: string;
@@ -453,18 +454,18 @@ export const listItemsWithImages = query({
     }
 
     let baseQuery;
-    if (args.gender && args.category) {
-      baseQuery = ctx.db
-        .query('items')
-        .withIndex('by_gender_and_category', (q) =>
-          q.eq('gender', args.gender!).eq('category', args.category!)
-        );
-    } else if (args.category) {
+    if (args.category) {
       baseQuery = ctx.db
         .query('items')
         .withIndex('by_active_and_category', (q) =>
           q.eq('isActive', true).eq('category', args.category!)
         );
+      
+      if (args.gender) {
+        baseQuery = baseQuery.filter((q) => 
+          q.or(q.eq(q.field('gender'), args.gender), q.eq(q.field('gender'), 'unisex'))
+        );
+      }
     } else if (args.gender) {
       baseQuery = ctx.db
         .query('items')
@@ -536,7 +537,7 @@ export const listItemsWithImages = query({
 });
 
 // Category type for the carousel
-type CategoryType = 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+type CategoryType = 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry' | 'swimwear';
 
 /**
  * Get one sample item with image per category for the Shop by Category carousel
@@ -553,8 +554,7 @@ export const getCategorySamples = query({
     })
   ),
   handler: async (
-    ctx: QueryCtx,
-    args: Record<string, never>
+    ctx: QueryCtx
   ): Promise<
     Array<{
       category: CategoryType;
@@ -809,6 +809,131 @@ export const getCategorySamplesWithGender = query({
 
     // Add non-empty categories to results
     results.push(...categoryResults.filter((cat) => cat.itemCount > 0));
+
+    return results;
+  },
+});
+
+/**
+ * Search items by attributes (for visual search)
+ * Returns items matching the given attributes
+ */
+export const searchItemsByAttributes = query({
+  args: {
+    category: v.optional(
+      v.union(
+        v.literal('top'),
+        v.literal('bottom'),
+        v.literal('dress'),
+        v.literal('outfit'),
+        v.literal('outerwear'),
+        v.literal('shoes'),
+        v.literal('accessory'),
+        v.literal('bag'),
+        v.literal('jewelry'),
+      v.literal('swimwear')
+      )
+    ),
+    colors: v.optional(v.array(v.string())),
+    gender: v.optional(v.union(v.literal('male'), v.literal('female'), v.literal('unisex'))),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id('items'),
+      publicId: v.string(),
+      name: v.string(),
+      brand: v.optional(v.string()),
+      category: v.string(),
+      gender: v.string(),
+      price: v.number(),
+      currency: v.string(),
+      colors: v.array(v.string()),
+      primaryImageUrl: v.union(v.string(), v.null()),
+    })
+  ),
+  handler: async (
+    ctx: QueryCtx,
+    args: {
+      category?: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+      colors?: string[];
+      gender?: 'male' | 'female' | 'unisex';
+      limit?: number;
+    }
+  ): Promise<
+    Array<{
+      _id: Id<'items'>;
+      publicId: string;
+      name: string;
+      brand?: string;
+      category: string;
+      gender: string;
+      price: number;
+      currency: string;
+      colors: string[];
+      primaryImageUrl: string | null;
+    }>
+  > => {
+    const limit = Math.min(args.limit || 20, 50);
+    let items: Doc<'items'>[];
+
+    // Query items based on category if provided
+    if (args.category) {
+      items = await ctx.db
+        .query('items')
+        .withIndex('by_category', (q) => q.eq('category', args.category!))
+        .filter((q) => q.eq(q.field('isActive'), true))
+        .take(limit * 2); // Get more to filter later
+    } else {
+      items = await ctx.db
+        .query('items')
+        .filter((q) => q.eq(q.field('isActive'), true))
+        .take(limit * 2);
+    }
+
+    // Filter by gender if specified
+    if (args.gender) {
+      items = items.filter(
+        (item) => item.gender === args.gender || item.gender === 'unisex'
+      );
+    }
+
+    // Limit results
+    items = items.slice(0, limit);
+
+    // Fetch primary images for items
+    const results = await Promise.all(
+      items.map(async (item) => {
+        const primaryImage = await ctx.db
+          .query('item_images')
+          .withIndex('by_item_and_primary', (q) =>
+            q.eq('itemId', item._id).eq('isPrimary', true)
+          )
+          .unique();
+
+        let imageUrl: string | null = null;
+        if (primaryImage) {
+          if (primaryImage.externalUrl) {
+            imageUrl = primaryImage.externalUrl;
+          } else if (primaryImage.storageId) {
+            imageUrl = await ctx.storage.getUrl(primaryImage.storageId);
+          }
+        }
+
+        return {
+          _id: item._id,
+          publicId: item.publicId,
+          name: item.name,
+          brand: item.brand,
+          category: item.category,
+          gender: item.gender,
+          price: item.price,
+          currency: item.currency,
+          colors: item.colors,
+          primaryImageUrl: imageUrl,
+        };
+      })
+    );
 
     return results;
   },

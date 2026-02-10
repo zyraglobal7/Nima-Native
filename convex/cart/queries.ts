@@ -8,6 +8,7 @@ const categoryValidator = v.union(
   v.literal('bottom'),
   v.literal('dress'),
   v.literal('outfit'),
+  v.literal('swimwear'),
   v.literal('outerwear'),
   v.literal('shoes'),
   v.literal('accessory'),
@@ -72,7 +73,7 @@ export const getCart = query({
         price: number;
         currency: string;
         originalPrice?: number;
-        category: 'top' | 'bottom' | 'dress' | 'outfit' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
+        category: 'top' | 'bottom' | 'dress' | 'outfit' | 'swimwear' | 'outerwear' | 'shoes' | 'accessory' | 'bag' | 'jewelry';
         gender: 'male' | 'female' | 'unisex';
         colors: string[];
         sizes: string[];
@@ -205,7 +206,7 @@ export const getCartTotal = query({
   }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      return { subtotal: 0, itemCount: 0, currency: 'USD' };
+      return { subtotal: 0, itemCount: 0, currency: 'KES' };
     }
 
     const user = await ctx.db
@@ -214,7 +215,7 @@ export const getCartTotal = query({
       .unique();
 
     if (!user) {
-      return { subtotal: 0, itemCount: 0, currency: 'USD' };
+      return { subtotal: 0, itemCount: 0, currency: 'KES' };
     }
 
     const cartItems = await ctx.db
@@ -224,7 +225,7 @@ export const getCartTotal = query({
 
     let subtotal = 0;
     let itemCount = 0;
-    let currency = 'USD';
+    let currency = 'KES';
 
     for (const cartItem of cartItems) {
       const item = await ctx.db.get(cartItem.itemId);

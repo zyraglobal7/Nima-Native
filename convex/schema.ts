@@ -145,7 +145,8 @@ export default defineSchema({
       v.literal('shoes'),
       v.literal('accessory'),
       v.literal('bag'),
-      v.literal('jewelry')
+      v.literal('jewelry'),
+      v.literal('swimwear')
     ),
     subcategory: v.optional(v.string()), // e.g., "t-shirt", "jeans", "sneakers"
     gender: v.union(v.literal('male'), v.literal('female'), v.literal('unisex')),
@@ -265,6 +266,10 @@ export default defineSchema({
     sharedWithFriends: v.optional(v.boolean()), // Share with friends (can be true even if isPublic is false)
     viewCount: v.optional(v.number()),
     saveCount: v.optional(v.number()),
+
+    // Variant info (for single-item looks like try-ons)
+    selectedSize: v.optional(v.string()), // e.g. "M", "US 10"
+    selectedColor: v.optional(v.string()), // e.g. "Red", "Navy"
 
     // Image generation status for workflow
     generationStatus: v.optional(
@@ -646,6 +651,10 @@ export default defineSchema({
     // Source info
     userImageId: v.id('user_images'), // Which user photo was used
 
+    // Variant selection
+    selectedSize: v.optional(v.string()), // e.g. "M"
+    selectedColor: v.optional(v.string()), // e.g. "Red"
+
     // Generation details
     status: v.union(
       v.literal('pending'),
@@ -884,7 +893,8 @@ export default defineSchema({
     interactionType: v.union(
       v.literal('love'),
       v.literal('dislike'),
-      v.literal('save')
+      v.literal('save'),
+      v.literal('recreate')
     ),
     // For activity feed - track if owner has seen this notification
     seenByOwner: v.optional(v.boolean()),
@@ -895,5 +905,23 @@ export default defineSchema({
     .index('by_look_and_user', ['lookId', 'userId'])
     .index('by_look_and_type', ['lookId', 'interactionType'])
     .index('by_created_at', ['createdAt']),
+
+  // ============================================
+  // ITEM LIKES (User likes on individual items)
+  // ============================================
+
+  /**
+   * item_likes - User likes on individual apparel items
+   * Tracks when users like/heart items for showing in Liked Items section
+   */
+  item_likes: defineTable({
+    userId: v.id('users'),
+    itemId: v.id('items'),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_item', ['itemId'])
+    .index('by_user_and_item', ['userId', 'itemId'])
+    .index('by_user_and_created', ['userId', 'createdAt']),
 
 });
