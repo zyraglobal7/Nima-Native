@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Nima",
-    "slug": "nima-native",
+    "slug": "shopnima",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "923dbfe4-71a8-4e10-853e-ba4793cd5b10"
+      }
+    },
+    "owner": "hilsden"
   }
 }
