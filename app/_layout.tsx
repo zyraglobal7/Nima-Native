@@ -113,10 +113,7 @@ function LayoutContent() {
 
           {/* Utility screens */}
           <Stack.Screen name="cart" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="checkout"
-            options={{ headerShown: true, title: "Checkout" }}
-          />
+          <Stack.Screen name="checkout" options={{ headerShown: false }} />
           <Stack.Screen name="orders/index" options={{ headerShown: false }} />
           <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
           <Stack.Screen

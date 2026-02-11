@@ -4,10 +4,11 @@ import { usePathname, useRouter } from "expo-router";
 import {
   Sparkles,
   ArrowLeft,
-  ShoppingBag,
-  MessageSquare,
   Activity,
+  ShoppingBag,
 } from "lucide-react-native";
+import { MessagesIcon } from "@/components/messages/MessagesIcon";
+import { ActivityIcon } from "@/components/activity/ActivityIcon";
 import { Text } from "@/components/ui/Text";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/lib/contexts/ThemeContext";
@@ -75,19 +76,9 @@ export function Header() {
         <View className="flex-row items-center gap-3">
           <ThemeToggle />
 
-          <TouchableOpacity
-            className="p-2 -mr-2 rounded-full active:bg-muted/10"
-            onPress={() => router.push("/activity")}
-          >
-            <Activity size={24} color={iconColor} />
-          </TouchableOpacity>
+          <ActivityIcon />
 
-          <TouchableOpacity
-            className="p-2 -mr-2 rounded-full active:bg-muted/10"
-            onPress={() => router.push("/messages")}
-          >
-            <MessageSquare size={24} color={iconColor} />
-          </TouchableOpacity>
+          <MessagesIcon />
 
           <TouchableOpacity
             className="p-2 -mr-2 rounded-full active:bg-muted/10"

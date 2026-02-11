@@ -238,7 +238,6 @@ export const getLookbookItemsWithDetails = query({
         type: v.literal('item'),
         item: v.object({
           _id: v.id('items'),
-          publicId: v.string(),
           name: v.string(),
           brand: v.optional(v.string()),
           category: v.string(),
@@ -273,7 +272,6 @@ export const getLookbookItemsWithDetails = query({
           type: 'item';
           item: {
             _id: Id<'items'>;
-            publicId: string;
             name: string;
             brand?: string;
             category: string;
@@ -399,7 +397,6 @@ export const getLookbookItemsWithDetails = query({
             type: 'item' as const,
             item: {
               _id: item._id,
-              publicId: item.publicId,
               name: item.name,
               brand: item.brand,
               category: item.category,
