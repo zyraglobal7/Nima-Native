@@ -211,7 +211,7 @@ export const sendChatMessage = action({
           content: m.content,
         })),
         temperature: 0.7,
-        maxOutputTokens: 500,
+  
       });
 
       console.log('[CHAT:SEND_MESSAGE] AI response generated successfully');
