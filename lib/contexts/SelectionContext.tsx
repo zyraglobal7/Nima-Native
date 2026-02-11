@@ -3,35 +3,22 @@ import {
   useContext,
   useState,
   useCallback,
-  ReactNode,
+  type ReactNode,
 } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
-
-/**
- * Minimal item type for selection (matches the web's ApparelItem interface
- * for the fields needed by the selection context).
- */
-export interface SelectableItem {
-  _id: Id<"items">;
-  name: string;
-  brand: string;
-  price: number;
-  currency: string;
-  imageUrl?: string;
-  category?: string;
-}
+import type { ApparelItem } from "@/components/discover/ApparelItemCard";
 
 interface SelectionContextValue {
   /** Whether selection mode is active */
   isSelectionMode: boolean;
   /** Set of selected item IDs */
   selectedItemIds: Set<Id<"items">>;
-  /** Map of selected items (id -> item) */
-  selectedItems: Map<string, SelectableItem>;
+  /** Map of selected items (id -> item) — preserves data across category navigation */
+  selectedItems: Map<string, ApparelItem>;
   /** Enable or disable selection mode */
   setSelectionMode: (mode: boolean) => void;
   /** Toggle an item's selection state */
-  toggleItemSelection: (item: SelectableItem) => void;
+  toggleItemSelection: (item: ApparelItem) => void;
   /** Clear all selections and exit selection mode */
   clearSelection: () => void;
   /** Get the count of selected items */
@@ -44,9 +31,9 @@ const MAX_SELECTION_SIZE = 6;
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [isSelectionMode, setIsSelectionModeState] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<
-    Map<string, SelectableItem>
-  >(new Map());
+  const [selectedItems, setSelectedItems] = useState<Map<string, ApparelItem>>(
+    new Map(),
+  );
 
   const setSelectionMode = useCallback((mode: boolean) => {
     setIsSelectionModeState(mode);
@@ -55,7 +42,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const toggleItemSelection = useCallback((item: SelectableItem) => {
+  const toggleItemSelection = useCallback((item: ApparelItem) => {
     setSelectedItems((prev) => {
       const newMap = new Map(prev);
       const itemId = item._id;
@@ -101,12 +88,4 @@ export function useSelection(): SelectionContextValue {
     throw new Error("useSelection must be used within a SelectionProvider");
   }
   return context;
-}
-
-/**
- * Optional hook that returns null if used outside provider.
- * Useful for components that might be rendered outside the selection context.
- */
-export function useSelectionOptional(): SelectionContextValue | null {
-  return useContext(SelectionContext);
 }

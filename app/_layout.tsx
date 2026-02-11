@@ -1,4 +1,7 @@
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "../global.css";
+import Toast from "react-native-toast-message";
 
 import { useState, useEffect, useCallback } from "react";
 import { Stack } from "expo-router";
@@ -21,6 +24,7 @@ import {
 } from "@expo-google-fonts/cormorant-garamond";
 import { ThemeProvider, useTheme } from "@/lib/contexts/ThemeContext";
 import { UserProvider } from "@/lib/contexts/UserContext";
+import { SelectionProvider } from "@/lib/contexts/SelectionContext";
 import { useAuthFromWorkOS } from "@/lib/auth";
 import { UserDataSync } from "@/components/UserDataSync";
 import { Header } from "@/components/ui/Header";
@@ -46,90 +50,95 @@ function LayoutContent() {
 
   return (
     <UserProvider>
-      <UserDataSync />
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <SelectionProvider>
+        <UserDataSync />
+        <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Global Header */}
-      {showHeader && <Header />}
+        {/* Global Header */}
+        {showHeader && <Header />}
 
-      <Stack
-        screenOptions={{
-          headerShown: false, // Default to false since we have a custom header
-          contentStyle: { backgroundColor },
-          animation: "slide_from_right",
-        }}
-      >
-        {/* Tab navigator */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        {/* Auth screens — presented as modals */}
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            headerShown: false,
-            presentation: "modal",
+        <Stack
+          screenOptions={{
+            headerShown: false, // Default to false since we have a custom header
+            contentStyle: { backgroundColor },
+            animation: "slide_from_right",
           }}
-        />
+        >
+          {/* Tab navigator */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-        {/* Onboarding — full screen, no back gesture */}
-        <Stack.Screen
-          name="onboarding"
-          options={{
-            headerShown: false, // Explicitly hidden
-            gestureEnabled: false,
-          }}
-        />
+          {/* Auth screens — presented as modals */}
+          <Stack.Screen
+            name="(auth)"
+            options={{
+              headerShown: false,
+              presentation: "modal",
+            }}
+          />
 
-        {/* Landing Page */}
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
-          }}
-        />
+          {/* Onboarding — full screen, no back gesture */}
+          <Stack.Screen
+            name="onboarding"
+            options={{
+              headerShown: false, // Explicitly hidden
+              gestureEnabled: false,
+            }}
+          />
 
-        {/* Detail screens */}
-        <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="look/[id]" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="fitting/[sessionId]"
-          options={{ headerShown: true, title: "Fitting Room" }}
-        />
-        <Stack.Screen name="lookbook/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="ask/[chatId]" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="discover/category/[category]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="discover/gender/[gender]"
-          options={{ headerShown: false }}
-        />
+          {/* Landing Page */}
+          <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-        {/* Utility screens */}
-        <Stack.Screen name="cart" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="checkout"
-          options={{ headerShown: true, title: "Checkout" }}
-        />
-        <Stack.Screen name="orders/index" options={{ headerShown: false }} />
-        <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="messages/index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="messages/[userId]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="activity" options={{ headerShown: false }} />
-        <Stack.Screen name="explore" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="profile/discarded-looks"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="profile/settings"
-          options={{ headerShown: false }}
-        />
-      </Stack>
+          {/* Detail screens */}
+          <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="look/[id]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="fitting/[sessionId]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="lookbook/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="ask/[chatId]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="discover/category/[category]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="discover/gender/[gender]"
+            options={{ headerShown: false }}
+          />
+
+          {/* Utility screens */}
+          <Stack.Screen name="cart" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="checkout"
+            options={{ headerShown: true, title: "Checkout" }}
+          />
+          <Stack.Screen name="orders/index" options={{ headerShown: false }} />
+          <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="messages/index"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="messages/[userId]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="activity" options={{ headerShown: false }} />
+          <Stack.Screen name="explore" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="profile/discarded-looks"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="profile/settings"
+            options={{ headerShown: false }}
+          />
+        </Stack>
+      </SelectionProvider>
     </UserProvider>
   );
 }
@@ -161,12 +170,17 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
-          <LayoutContent />
-        </ConvexProviderWithAuth>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
+              <LayoutContent />
+            </ConvexProviderWithAuth>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </BottomSheetModalProvider>
+      <Toast />
+    </GestureHandlerRootView>
   );
 }

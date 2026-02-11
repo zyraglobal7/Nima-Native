@@ -1,17 +1,105 @@
-import { View, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+} from "react-native";
+import { Settings, Image as ImageIcon, Shirt, User } from "lucide-react-native";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { SettingsTab } from "@/components/profile/SettingsTab";
+import { PhotosTab } from "@/components/profile/PhotosTab";
+import { StyleFitTab } from "@/components/profile/StyleFitTab";
+import { AccountTab } from "@/components/profile/AccountTab";
+import { useAuthFromWorkOS } from "@/lib/auth";
+import { Redirect } from "expo-router";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+
+type Tab = "settings" | "photos" | "style" | "account";
 
 export default function ProfileScreen() {
+  const { isLoading, isAuthenticated } = useAuthFromWorkOS();
+  const [activeTab, setActiveTab] = useState<Tab>("settings");
+  const currentUser = useQuery(api.users.queries.getCurrentUser);
+
+  if (!isLoading && !isAuthenticated) {
+    return <Redirect href="/(auth)/sign-in" />;
+  }
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "settings":
+        return <SettingsTab />;
+      case "photos":
+        return <PhotosTab />;
+      case "style":
+        return <StyleFitTab />;
+      case "account":
+        return <AccountTab />;
+      default:
+        return <SettingsTab />;
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="flex-1 justify-center items-center px-6">
-        <Text className="text-3xl font-serif text-foreground mb-2">
-          Profile
-        </Text>
-        <Text className="text-base text-muted-foreground text-center">
-          Your style, your way
-        </Text>
+      <View className="flex-1 px-4 pt-4">
+        <ProfileHeader onEdit={() => setActiveTab("account")} />
+
+        <View className="flex-row bg-surface p-1 rounded-xl mb-6">
+          <TabButton
+            active={activeTab === "settings"}
+            onPress={() => setActiveTab("settings")}
+            label="Settings"
+          />
+          <TabButton
+            active={activeTab === "photos"}
+            onPress={() => setActiveTab("photos")}
+            label="Photos"
+          />
+          <TabButton
+            active={activeTab === "style"}
+            onPress={() => setActiveTab("style")}
+            label="Style & Fit"
+          />
+          <TabButton
+            active={activeTab === "account"}
+            onPress={() => setActiveTab("account")}
+            label="Account"
+          />
+        </View>
+
+        <View className="flex-1">{renderContent()}</View>
       </View>
     </SafeAreaView>
+  );
+}
+
+function TabButton({
+  active,
+  onPress,
+  label,
+}: {
+  active: boolean;
+  onPress: () => void;
+  label: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`flex-1 items-center justify-center py-2.5 rounded-lg ${
+        active ? "bg-background shadow-sm" : ""
+      }`}
+    >
+      <Text
+        className={`text-sm font-medium ${
+          active ? "text-foreground" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }

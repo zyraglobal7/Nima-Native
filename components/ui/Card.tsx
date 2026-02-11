@@ -26,7 +26,29 @@ export function Card({ className, variant = "surface", ...props }: CardProps) {
 
   return (
     <View
-      className={cn("rounded-xl p-4 shadow-sm", variantStyles, className)}
+      className={cn("rounded-xl shadow-sm", variantStyles, className)}
+      {...props}
+    />
+  );
+}
+
+export function CardHeader({ className, ...props }: ViewProps) {
+  return (
+    <View
+      className={cn("flex flex-col space-y-1.5 p-6", className)}
+      {...props}
+    />
+  );
+}
+
+export function CardContent({ className, ...props }: ViewProps) {
+  return <View className={cn("p-6 pt-0", className)} {...props} />;
+}
+
+export function CardFooter({ className, ...props }: ViewProps) {
+  return (
+    <View
+      className={cn("flex flex-row items-center p-6 pt-0", className)}
       {...props}
     />
   );
