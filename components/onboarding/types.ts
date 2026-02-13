@@ -119,6 +119,26 @@ export const STYLE_OUTFIT_IMAGES = [
   { id: '8', url: '/Trendy, Casual.png', tags: ['Casual', 'Sporty'] },
 ];
 
+import type { ImageSourcePropType } from 'react-native';
+
+export interface StyleVibeCard {
+  id: string;
+  title: string;
+  image: ImageSourcePropType;
+  tags: string[];
+}
+
+export const STYLE_VIBE_CARDS: StyleVibeCard[] = [
+  { id: '1', title: 'Classic, Preppy', image: require('../../assets/Classic, Preppy.png'), tags: ['Classic', 'Preppy'] },
+  { id: '2', title: 'Minimalist, Casual', image: require('../../assets/minimalist, casual.png'), tags: ['Minimalist', 'Casual'] },
+  { id: '3', title: 'Neutrals, Classic', image: require('../../assets/Neutrals, classic.png'), tags: ['Neutrals', 'Classic'] },
+  { id: '4', title: 'Sporty, Gym Wear', image: require('../../assets/Sporty, gym wear.png'), tags: ['Sporty', 'Casual'] },
+  { id: '5', title: 'Streetwear, Edgy', image: require('../../assets/Streetwear, Edgy.png'), tags: ['Streetwear', 'Edgy'] },
+  { id: '6', title: 'Trendy, Casual', image: require('../../assets/Trendy, Casual.png'), tags: ['Trendy', 'Casual'] },
+  { id: '7', title: 'Vintage, Romantic', image: require('../../assets/Vintage, Romantic, .png'), tags: ['Vintage', 'Romantic'] },
+  { id: '8', title: 'Formal, Elegant', image: require('../../assets/Formal, Elegant.png'), tags: ['Formal', 'Elegant'] },
+];
+
 export const COUNTRIES = [
   { code: 'KE', name: 'Kenya', currency: 'KES', emoji: '🇰🇪', phoneCode: '+254' },
 ];

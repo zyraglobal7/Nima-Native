@@ -54,7 +54,7 @@ export function LookbookItemGrid({ items }: LookbookItemGridProps) {
         <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mt-4">
           This lookbook is empty
         </Text>
-        <Text className="text-muted-foreground dark:text-muted-foreground-dark text-center mt-2">
+        <Text className="text-muted-foreground dark:text-muted-dark-foreground text-center mt-2">
           Save looks and items from your feed to add them here.
         </Text>
       </View>
@@ -128,7 +128,7 @@ export function LookbookItemGrid({ items }: LookbookItemGridProps) {
                 >
                   {title}
                 </Text>
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-0.5">
                   {subtitle}
                 </Text>
               </View>

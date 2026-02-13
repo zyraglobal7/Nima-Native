@@ -1,33 +1,19 @@
 import { Tabs } from "expo-router";
-import { Sparkles, BookOpen, User } from "lucide-react-native";
-import { View, Text } from "react-native";
-
-// Custom icon wrapper for the Ask Nima tab (chat bubble)
-function AskNimaIcon({ color, size }: { color: string; size: number }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ fontSize: size * 0.85, color }}>💬</Text>
-    </View>
-  );
-}
+import { Sparkles, BookOpen, User, MessageCircle } from "lucide-react-native";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 export default function TabLayout() {
+  const { isDark } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#5C2A33",
-        tabBarInactiveTintColor: "#6B635B",
+        tabBarActiveTintColor: isDark ? "#C9A07A" : "#5C2A33",
+        tabBarInactiveTintColor: isDark ? "#8C8078" : "#6B635B",
         tabBarStyle: {
-          backgroundColor: "#FAF8F5",
-          borderTopColor: "#E0D8CC",
+          backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
+          borderTopColor: isDark ? "#3D3835" : "#E0D8CC",
           borderTopWidth: 0.5,
           paddingBottom: 0,
           paddingTop: 5,
@@ -53,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: "Ask Nima",
           tabBarIcon: ({ color, size }) => (
-            <AskNimaIcon color={color} size={size} />
+            <MessageCircle color={color} size={size} />
           ),
         }}
       />

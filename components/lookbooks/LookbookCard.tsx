@@ -95,7 +95,7 @@ export function LookbookCard({
               <Lock size={14} color={isDark ? "#9C948A" : "#706B63"} />
             )}
           </View>
-          <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-0.5">
             {lookbook.itemCount} {lookbook.itemCount === 1 ? "item" : "items"}
           </Text>
         </View>

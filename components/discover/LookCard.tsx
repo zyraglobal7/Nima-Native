@@ -93,7 +93,7 @@ export function LookCard({ look, index }: LookCardProps) {
               <ActivityIndicator size="large" color="#A67C52" />
               <View className="flex-row items-center gap-2 mt-3">
                 <Sparkles size={14} color="#A67C52" />
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                   Generating look...
                 </Text>
               </View>
@@ -104,7 +104,7 @@ export function LookCard({ look, index }: LookCardProps) {
               <Text className="text-sm text-foreground dark:text-foreground-dark mt-2 text-center">
                 Image generation failed
               </Text>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-1 text-center">
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-1 text-center">
                 Tap to view look and retry
               </Text>
               {/* Small product previews */}
@@ -122,7 +122,7 @@ export function LookCard({ look, index }: LookCardProps) {
                       />
                     ) : (
                       <View className="flex-1 items-center justify-center">
-                        <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                        <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                           {p.category.charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -148,7 +148,7 @@ export function LookCard({ look, index }: LookCardProps) {
                       />
                     ) : (
                       <View className="flex-1 items-center justify-center">
-                        <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                        <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                           {p.category.charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -156,7 +156,7 @@ export function LookCard({ look, index }: LookCardProps) {
                   </View>
                 ))}
               </View>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                 {look.products.length} items
               </Text>
             </View>
@@ -172,7 +172,7 @@ export function LookCard({ look, index }: LookCardProps) {
 
         {/* Footer */}
         <View className="p-3">
-          <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
             {look.occasion} • {look.products.length} items
           </Text>
         </View>

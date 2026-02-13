@@ -43,7 +43,9 @@ export default function LookbooksScreen() {
   // Queries
   const savedLooks = useQuery(api.looks.queries.getSavedLooks, { limit: 50 });
   const likedItems = useQuery(api.items.likes.getLikedItems, { limit: 50 });
-  const lookbooks = useQuery(api.lookbooks.queries.listUserLookbooks, {});
+  const lookbooksRaw = useQuery(api.lookbooks.queries.listUserLookbooks, {});
+  const lookbooksWithCovers = useQuery(api.lookbooks.queries.listUserLookbooksWithCovers, {});
+  const lookbooks = lookbooksRaw;
 
   const isLoading =
     (activeTab === "saved" && savedLooks === undefined) ||
@@ -74,7 +76,7 @@ export default function LookbooksScreen() {
               className={`text-xs font-medium ${
                 isActive
                   ? "text-primary-foreground dark:text-primary-dark-foreground"
-                  : "text-muted-foreground dark:text-muted-foreground-dark"
+                  : "text-muted-foreground dark:text-muted-dark-foreground"
               }`}
             >
               {tab.label}
@@ -95,7 +97,7 @@ export default function LookbooksScreen() {
           <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mt-4">
             No saved looks yet
           </Text>
-          <Text className="text-muted-foreground dark:text-muted-foreground-dark text-center mt-2">
+          <Text className="text-muted-foreground dark:text-muted-dark-foreground text-center mt-2">
             Your looks from Nima will appear here. Try asking Nima for outfit
             ideas!
           </Text>
@@ -157,7 +159,7 @@ export default function LookbooksScreen() {
                 >
                   {item.look.occasion || item.look.name || "Look"}
                 </Text>
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-0.5">
                   {formatPrice(item.look.totalPrice, item.look.currency)}
                   {" · "}
                   {item.items.length} items
@@ -180,7 +182,7 @@ export default function LookbooksScreen() {
           <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mt-4">
             No liked items yet
           </Text>
-          <Text className="text-muted-foreground dark:text-muted-foreground-dark text-center mt-2">
+          <Text className="text-muted-foreground dark:text-muted-dark-foreground text-center mt-2">
             Tap the heart on any item you love to save it here.
           </Text>
         </View>
@@ -219,7 +221,7 @@ export default function LookbooksScreen() {
                   />
                 ) : (
                   <View className="flex-1 bg-surface-alt dark:bg-surface-alt-dark items-center justify-center">
-                    <Text className="text-muted-foreground dark:text-muted-foreground-dark font-serif text-lg">
+                    <Text className="text-muted-foreground dark:text-muted-dark-foreground font-serif text-lg">
                       {item.category.charAt(0).toUpperCase()}
                     </Text>
                   </View>
@@ -227,7 +229,7 @@ export default function LookbooksScreen() {
               </View>
               <View className="p-2.5">
                 {item.brand && (
-                  <Text className="text-[10px] text-muted-foreground dark:text-muted-foreground-dark uppercase tracking-wider">
+                  <Text className="text-[10px] text-muted-foreground dark:text-muted-dark-foreground uppercase tracking-wider">
                     {item.brand}
                   </Text>
                 )}
@@ -252,6 +254,17 @@ export default function LookbooksScreen() {
   const renderLookbooks = () => {
     if (!lookbooks) return null;
 
+    // Build a map from lookbook ID -> cover data for quick lookup
+    const coverMap = new Map<string, { coverImageUrl: string | null; previewImageUrls: string[] }>();
+    if (lookbooksWithCovers) {
+      for (const entry of lookbooksWithCovers) {
+        coverMap.set(entry.lookbook._id, {
+          coverImageUrl: entry.coverImageUrl,
+          previewImageUrls: entry.previewImageUrls,
+        });
+      }
+    }
+
     return (
       <View className="flex-1">
         {/* Create button */}
@@ -271,7 +284,7 @@ export default function LookbooksScreen() {
             <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mt-4">
               No lookbooks yet
             </Text>
-            <Text className="text-muted-foreground dark:text-muted-foreground-dark text-center mt-2">
+            <Text className="text-muted-foreground dark:text-muted-dark-foreground text-center mt-2">
               Create collections to organize your favorite looks and items.
             </Text>
           </View>
@@ -287,20 +300,25 @@ export default function LookbooksScreen() {
             }}
             showsVerticalScrollIndicator={false}
             keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <View style={{ width: cardWidth }}>
-                <LookbookCard
-                  lookbook={{
-                    _id: item._id,
-                    name: item.name,
-                    description: item.description,
-                    itemCount: item.itemCount,
-                    isPrivate: !item.isPublic,
-                  }}
-                  index={index}
-                />
-              </View>
-            )}
+            renderItem={({ item, index }) => {
+              const coverData = coverMap.get(item._id);
+              return (
+                <View style={{ width: cardWidth }}>
+                  <LookbookCard
+                    lookbook={{
+                      _id: item._id,
+                      name: item.name,
+                      description: item.description,
+                      itemCount: item.itemCount,
+                      isPrivate: !item.isPublic,
+                    }}
+                    coverImageUrl={coverData?.coverImageUrl}
+                    previewImageUrls={coverData?.previewImageUrls}
+                    index={index}
+                  />
+                </View>
+              );
+            }}
           />
         )}
       </View>

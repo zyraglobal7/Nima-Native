@@ -36,6 +36,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
+import { CreditsModal } from "@/components/credits/CreditsModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -63,6 +64,7 @@ export default function ProductDetailScreen() {
   const [isSavingTryOn, setIsSavingTryOn] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -158,6 +160,9 @@ export default function ProductDetailScreen() {
       if (result.success && result.tryOnId) {
         setTryOnId(result.tryOnId);
         setTryOnStatus("pending");
+      } else if (result.error === "insufficient_credits") {
+        setTryOnStatus("idle");
+        setShowCreditsModal(true);
       } else {
         setTryOnStatus("failed");
         Alert.alert("Error", result.error || "Failed to start try-on");
@@ -183,7 +188,7 @@ export default function ProductDetailScreen() {
 
   const handleShare = async () => {
     try {
-      await Clipboard.setStringAsync(`https://nima.style/product/${id}`);
+      await Clipboard.setStringAsync(`https://www.shopnima.ai/product/${id}`);
       Alert.alert("Copied", "Link copied to clipboard!");
     } catch {
       // Ignore
@@ -365,7 +370,7 @@ export default function ProductDetailScreen() {
           {/* Brand */}
           <View>
             {item.brand && (
-              <Text className="text-xs font-medium text-muted-foreground dark:text-muted-foreground-dark uppercase tracking-widest mb-1">
+              <Text className="text-xs font-medium text-muted-foreground dark:text-muted-dark-foreground uppercase tracking-widest mb-1">
                 {item.brand}
               </Text>
             )}
@@ -381,7 +386,7 @@ export default function ProductDetailScreen() {
             </Text>
             {hasDiscount && (
               <>
-                <Text className="text-lg text-muted-foreground dark:text-muted-foreground-dark line-through">
+                <Text className="text-lg text-muted-foreground dark:text-muted-dark-foreground line-through">
                   {formatPrice(item.originalPrice!, item.currency)}
                 </Text>
                 <View className="px-2 py-0.5 bg-destructive/10 dark:bg-destructive-dark/10 rounded-full">
@@ -395,7 +400,7 @@ export default function ProductDetailScreen() {
 
           {/* Description */}
           {item.description && (
-            <Text className="text-muted-foreground dark:text-muted-foreground-dark leading-relaxed">
+            <Text className="text-muted-foreground dark:text-muted-dark-foreground leading-relaxed">
               {item.description}
             </Text>
           )}
@@ -480,7 +485,7 @@ export default function ProductDetailScreen() {
                 key={index}
                 className="px-3 py-1 bg-surface dark:bg-surface-dark rounded-full"
               >
-                <Text className="text-muted-foreground dark:text-muted-foreground-dark text-sm">
+                <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm">
                   {tag}
                 </Text>
               </View>
@@ -643,7 +648,7 @@ export default function ProductDetailScreen() {
                   <Text className="font-medium text-foreground dark:text-foreground-dark">
                     {item.name}
                   </Text>
-                  <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground">
                     {formatPrice(item.price, item.currency)}
                   </Text>
                 </View>
@@ -738,6 +743,12 @@ export default function ProductDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Credits Modal */}
+      <CreditsModal
+        visible={showCreditsModal}
+        onClose={() => setShowCreditsModal(false)}
+      />
     </View>
   );
 }

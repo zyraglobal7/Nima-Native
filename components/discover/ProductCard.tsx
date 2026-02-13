@@ -55,7 +55,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             />
           ) : (
             <View className="flex-1 items-center justify-center">
-              <Text className="text-muted-foreground dark:text-muted-foreground-dark text-lg font-serif">
+              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-lg font-serif">
                 {product.category.charAt(0).toUpperCase()}
               </Text>
             </View>
@@ -65,7 +65,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
         {/* Product Info */}
         <View className="flex-1 p-3 justify-center">
           {product.brand && (
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark uppercase tracking-wider mb-0.5">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground uppercase tracking-wider mb-0.5">
               {product.brand}
             </Text>
           )}

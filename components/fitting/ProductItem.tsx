@@ -74,7 +74,7 @@ export function ProductItem({
           />
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               No image
             </Text>
           </View>
@@ -85,7 +85,7 @@ export function ProductItem({
       <View className="flex-1 justify-between">
         <View>
           <Text
-            className="text-xs text-muted-foreground dark:text-muted-foreground-dark uppercase tracking-wider"
+            className="text-xs text-muted-foreground dark:text-muted-dark-foreground uppercase tracking-wider"
             numberOfLines={1}
           >
             {product.brand}
@@ -97,7 +97,7 @@ export function ProductItem({
             {product.name}
           </Text>
           <View className="flex-row items-center gap-2 mt-0.5">
-            <Text className="text-xs text-muted-foreground/70 dark:text-muted-foreground-dark/70 capitalize">
+            <Text className="text-xs text-muted-foreground/70 dark:text-muted-dark-foreground/70 capitalize">
               {product.color}
             </Text>
           </View>

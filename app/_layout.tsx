@@ -29,6 +29,7 @@ import { useAuthFromWorkOS } from "@/lib/auth";
 import { UserDataSync } from "@/components/UserDataSync";
 import { Header } from "@/components/ui/Header";
 import { usePathname } from "expo-router";
+import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 
 // Keep splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -40,10 +41,14 @@ function LayoutContent() {
   const { isDark } = useTheme();
   const pathname = usePathname();
 
+  // Register for push notifications and save token to Convex
+  usePushNotifications();
+
   // Determine if we should show the global header
   const showHeader =
     pathname !== "/" &&
     pathname !== "/onboarding" &&
+    pathname !== "/callback" &&
     !pathname?.startsWith("/(auth)");
 
   const backgroundColor = isDark ? "#1A1614" : "#FAF8F5";
@@ -109,6 +114,15 @@ function LayoutContent() {
           <Stack.Screen
             name="discover/gender/[gender]"
             options={{ headerShown: false }}
+          />
+
+          {/* OAuth callback — handles web redirect from WorkOS */}
+          <Stack.Screen
+            name="callback"
+            options={{
+              headerShown: false,
+              gestureEnabled: false,
+            }}
           />
 
           {/* Utility screens */}

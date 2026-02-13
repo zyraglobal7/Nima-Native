@@ -29,6 +29,7 @@ import { ExploreCard } from "@/components/ask/ExploreCard";
 import { Text } from "@/components/ui/Text";
 import { ArrowLeft, Sparkles } from "lucide-react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
+import { CreditsModal } from "@/components/credits/CreditsModal";
 
 type ViewState = "welcome" | "chatting";
 type ChatState = "idle" | "typing" | "curating" | "generating" | "no_matches";
@@ -56,13 +57,12 @@ export default function AskScreen() {
   // Look generation state
   const [createdLookIds, setCreatedLookIds] = useState<Id<"looks">[]>([]);
   const [lookScenario, setLookScenario] = useState<"fresh" | "remix">("fresh");
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
 
   // Get current user
   const currentUser = useQuery(api.users.queries.getCurrentUser);
-  const remainingSearches = Math.max(
-    0,
-    20 - (currentUser?.dailyTryOnCount || 0),
-  );
+  const userCredits = useQuery(api.credits.queries.getUserCredits);
+  const remainingSearches = userCredits?.total ?? 0;
 
   // Database messages (reactive)
   const dbMessages = useQuery(
@@ -89,8 +89,8 @@ export default function AskScreen() {
   const saveNoMatchesMessage = useMutation(
     api.messages.mutations.saveNoMatchesMessage,
   );
-  const generateChatLookImages = useAction(
-    api.chat.actions.generateChatLookImages,
+  const scheduleChatLookImages = useMutation(
+    api.chat.mutations.scheduleChatLookImageGeneration,
   );
   const sendChatMessage = useAction(api.chat.actions.sendChatMessage);
 
@@ -164,9 +164,9 @@ export default function AskScreen() {
           setCreatedLookIds(lookIds);
           setLookScenario(result.scenario);
 
-          // Generate images
+          // Schedule image generation (runs in parallel, no token expiry)
           setChatState("generating");
-          await generateChatLookImages({ lookIds });
+          await scheduleChatLookImages({ lookIds });
 
           // Save fitting-ready message
           await saveFittingReadyMessage({
@@ -176,6 +176,10 @@ export default function AskScreen() {
           });
 
           setChatState("idle");
+        } else if (!result.success && result.message === "insufficient_credits") {
+          // Show credits modal
+          setChatState("idle");
+          setShowCreditsModal(true);
         } else {
           // No matches
           await saveNoMatchesMessage({
@@ -193,7 +197,7 @@ export default function AskScreen() {
     },
     [
       createLooksFromChat,
-      generateChatLookImages,
+      scheduleChatLookImages,
       saveFittingReadyMessage,
       saveNoMatchesMessage,
     ],
@@ -447,7 +451,7 @@ export default function AskScreen() {
             {/* Free searches badge */}
             <Animated.View entering={FadeIn.duration(400)}>
               <View className="mb-6 px-4 py-1.5 rounded-full bg-surface/80 dark:bg-surface-dark/80 border border-border/40 dark:border-border-dark/40">
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                   <Text className="text-secondary dark:text-secondary-dark font-medium">
                     {remainingSearches}
                   </Text>{" "}
@@ -552,14 +556,14 @@ export default function AskScreen() {
             <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">
               Nima
             </Text>
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               Your AI Stylist
             </Text>
           </View>
 
           {/* Free searches badge */}
           <View className="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-border/30 dark:border-border-dark/30">
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               <Text className="text-secondary dark:text-secondary-dark font-medium">
                 {remainingSearches}
               </Text>{" "}
@@ -590,6 +594,12 @@ export default function AskScreen() {
           disabledPlaceholder={getInputPlaceholder()}
         />
       </KeyboardAvoidingView>
+
+      {/* Credits Modal */}
+      <CreditsModal
+        visible={showCreditsModal}
+        onClose={() => setShowCreditsModal(false)}
+      />
     </View>
   );
 }

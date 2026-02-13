@@ -15,6 +15,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 const MAX_PHOTOS = 4;
 
@@ -118,18 +119,20 @@ export function PhotosTab() {
     }
   };
 
+  const { isDark } = useTheme();
+
   return (
     <ScrollView
-      className="flex-1 bg-background"
+      className="flex-1 bg-background dark:bg-background-dark"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 80 }}
     >
       {/* Header */}
       <View className="mb-6">
-        <Text className="text-xl font-serif font-medium text-foreground mb-2">
+        <Text className="text-xl font-serif font-medium text-foreground dark:text-foreground-dark mb-2">
           Your Photos
         </Text>
-        <Text className="text-sm text-muted-foreground leading-5 font-sans">
+        <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground leading-5 font-sans">
           These photos are used for virtual try-on. The primary photo (marked
           with a star) is used by default.
         </Text>
@@ -140,8 +143,8 @@ export function PhotosTab() {
         {userImages?.map((image) => (
           <View
             key={image._id}
-            className={`w-[47%] aspect-[3/4] relative rounded-xl overflow-hidden bg-surface border ${
-              image.isPrimary ? "border-primary" : "border-border"
+            className={`w-[47%] aspect-[3/4] relative rounded-xl overflow-hidden bg-surface dark:bg-surface-dark border ${
+              image.isPrimary ? "border-primary dark:border-primary-dark" : "border-border dark:border-border-dark"
             }`}
           >
             {image.url && (
@@ -154,9 +157,9 @@ export function PhotosTab() {
 
             {/* Primary Badge */}
             {image.isPrimary && (
-              <View className="absolute top-2 left-2 bg-primary px-2 py-1 rounded-full flex-row items-center space-x-1 shadow-sm">
-                <Star size={10} color="white" fill="white" />
-                <Text className="text-primary-foreground text-[10px] font-bold font-sans">
+              <View className="absolute top-2 left-2 bg-primary dark:bg-primary-dark px-2 py-1 rounded-full flex-row items-center space-x-1 shadow-sm">
+                <Star size={10} color={isDark ? "#1A1614" : "white"} fill={isDark ? "#1A1614" : "white"} />
+                <Text className="text-primary-foreground dark:text-primary-dark-foreground text-[10px] font-bold font-sans">
                   Primary
                 </Text>
               </View>
@@ -202,19 +205,19 @@ export function PhotosTab() {
           <TouchableOpacity
             onPress={handlePickImage}
             disabled={uploading}
-            className="w-[47%] aspect-[3/4] rounded-xl border-2 border-dashed border-border items-center justify-center bg-surface hover:bg-surface-alt"
+            className="w-[47%] aspect-[3/4] rounded-xl border-2 border-dashed border-border dark:border-border-dark items-center justify-center bg-surface dark:bg-surface-dark"
           >
             {uploading ? (
-              <ActivityIndicator color="#C08D5D" /> // Primary color approximately
+              <ActivityIndicator color={isDark ? "#C9A07A" : "#C08D5D"} />
             ) : (
               <>
-                <View className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center mb-2">
-                  <Plus size={20} className="text-muted-foreground" />
+                <View className="w-10 h-10 rounded-full bg-surface-alt dark:bg-surface-alt-dark items-center justify-center mb-2">
+                  <Plus size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
                 </View>
-                <Text className="text-sm font-medium text-foreground font-sans">
+                <Text className="text-sm font-medium text-foreground dark:text-foreground-dark font-sans">
                   Add Photo
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-1 font-sans">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-1 font-sans">
                   {MAX_PHOTOS - (userImages?.length || 0)} slots remaining
                 </Text>
               </>
@@ -224,19 +227,19 @@ export function PhotosTab() {
       </View>
 
       {/* Tips Section - Themed */}
-      <View className="bg-surface border border-border p-4 rounded-xl flex-row space-x-3">
-        <Camera size={20} className="text-primary" />
+      <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark p-4 rounded-xl flex-row space-x-3">
+        <Camera size={20} className="text-primary dark:text-primary-dark" />
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground font-sans">
+          <Text className="text-sm font-medium text-foreground dark:text-foreground-dark font-sans">
             Photo Tips
           </Text>
-          <Text className="text-xs text-muted-foreground mt-1 font-sans">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-1 font-sans">
             • Use full-body photos for best try-on results
           </Text>
-          <Text className="text-xs text-muted-foreground font-sans">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground font-sans">
             • Good lighting helps AI generate better images
           </Text>
-          <Text className="text-xs text-muted-foreground font-sans">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground font-sans">
             • Neutral backgrounds work best
           </Text>
         </View>

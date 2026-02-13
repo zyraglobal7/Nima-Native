@@ -352,9 +352,9 @@ export function PhotoUploadStep({
           )}
         </View>
 
-        {/* Skip note */}
+        {/* Requirement note */}
         <Text className="text-xs text-muted-foreground text-center">
-          You can skip this step and add photos later from your profile
+          At least one photo is required for AI try-on styling
         </Text>
 
         <View className="h-4" />
@@ -366,15 +366,22 @@ export function PhotoUploadStep({
           onPress={() => {
             trackStepCompleted(ONBOARDING_STEPS.PHOTO_UPLOAD, {
               photo_count: formData.uploadedImages.length,
-              skipped: formData.uploadedImages.length === 0,
+              skipped: false,
             });
             onNext();
           }}
-          className="w-full bg-primary py-4 rounded-full items-center"
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          disabled={formData.uploadedImages.length === 0}
+          className={`w-full py-4 rounded-full items-center ${
+            formData.uploadedImages.length > 0 ? "bg-primary" : "bg-primary/50"
+          }`}
+          style={({ pressed }) => ({
+            opacity: formData.uploadedImages.length > 0 && pressed ? 0.85 : 1,
+          })}
         >
           <Text className="text-primary-foreground text-base font-semibold tracking-wide">
-            {formData.uploadedImages.length > 0 ? "Continue" : "Skip for now"}
+            {formData.uploadedImages.length > 0
+              ? "Continue"
+              : "Upload a photo to continue"}
           </Text>
         </Pressable>
       </View>

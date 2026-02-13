@@ -150,7 +150,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
                   {look.creator.firstName || look.creator.username || "User"}
                 </Text>
                 {look.isFriend && (
-                  <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                  <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                     Friend
                   </Text>
                 )}
@@ -173,7 +173,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
                 ) : requestSent ? (
                   <>
                     <Check size={12} color="#9C948A" />
-                    <Text className="text-xs font-medium text-muted-foreground dark:text-muted-foreground-dark">
+                    <Text className="text-xs font-medium text-muted-foreground dark:text-muted-dark-foreground">
                       Requested
                     </Text>
                   </>
@@ -206,7 +206,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
                 <ActivityIndicator size="large" color="#A67C52" />
                 <View className="flex-row items-center gap-2 mt-3">
                   <Sparkles size={14} color="#A67C52" />
-                  <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                  <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                     Generating look...
                   </Text>
                 </View>
@@ -214,10 +214,10 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
             ) : generationFailed ? (
               <View className="flex-1 bg-surface-alt dark:bg-surface-alt-dark items-center justify-center">
                 <AlertCircle size={32} color="#9C948A" />
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-2">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-2">
                   Generation failed
                 </Text>
-                <Text className="text-xs text-muted-foreground/70 dark:text-muted-foreground-dark/70 mt-1">
+                <Text className="text-xs text-muted-foreground/70 dark:text-muted-dark-foreground/70 mt-1">
                   Tap to retry
                 </Text>
               </View>
@@ -237,7 +237,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
                         />
                       ) : (
                         <View className="flex-1 items-center justify-center">
-                          <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                             {p.category.charAt(0).toUpperCase()}
                           </Text>
                         </View>
@@ -245,7 +245,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
                     </View>
                   ))}
                 </View>
-                <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                   {look.products.length} items
                 </Text>
               </View>
@@ -300,7 +300,7 @@ export function LookCardWithCreator({ look, index }: LookCardWithCreatorProps) {
 
         {/* Footer */}
         <View className="p-3">
-          <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
             {look.occasion} • {look.products.length} items
           </Text>
         </View>

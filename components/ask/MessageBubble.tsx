@@ -51,6 +51,7 @@ export function MessageBubble({
     <Animated.View
       entering={animate ? FadeInUp.duration(300) : undefined}
       className={cn("mb-3 px-4", isNima ? "items-start" : "items-end")}
+      style={{ width: "100%" }}
     >
       <View
         className={cn(
@@ -87,7 +88,7 @@ export function MessageBubble({
           className={cn(
             "text-[10px] mt-1.5",
             isNima
-              ? "text-muted-foreground/60 dark:text-muted-foreground-dark/60"
+              ? "text-muted-foreground/60 dark:text-muted-dark-foreground/60"
               : "text-white/50",
           )}
         >
@@ -103,6 +104,7 @@ export function TypingIndicator() {
     <Animated.View
       entering={FadeInUp.duration(300)}
       className="mb-3 px-4 items-start"
+      style={{ width: "100%" }}
     >
       <View className="bg-surface dark:bg-surface-dark border border-border/20 dark:border-border-dark/20 rounded-2xl rounded-bl-md px-4 py-3">
         <View className="flex-row items-center gap-1.5 mb-1.5">

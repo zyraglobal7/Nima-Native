@@ -77,7 +77,7 @@ export function LookCarousel({
                   <Text className="text-base font-medium text-foreground dark:text-foreground-dark">
                     Generating your look...
                   </Text>
-                  <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark text-center px-8">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground text-center px-8">
                     This may take a moment as we create your personalized image
                   </Text>
                 </View>
@@ -85,10 +85,10 @@ export function LookCarousel({
             </View>
           ) : item.isFailed ? (
             <View className="flex-1 items-center justify-center bg-surface-alt dark:bg-surface-alt-dark">
-              <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">
+              <Text className="text-base text-muted-foreground dark:text-muted-dark-foreground">
                 Image generation failed
               </Text>
-              <Text className="text-sm text-muted-foreground/60 dark:text-muted-foreground-dark/60 mt-1">
+              <Text className="text-sm text-muted-foreground/60 dark:text-muted-dark-foreground/60 mt-1">
                 Please try generating again
               </Text>
             </View>
@@ -102,7 +102,7 @@ export function LookCarousel({
           ) : (
             <View className="flex-1 items-center justify-center bg-surface-alt dark:bg-surface-alt-dark">
               <Sparkles size={24} color={isDark ? "#C9A07A" : "#A67C52"} />
-              <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-2">
+              <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-2">
                 Loading look...
               </Text>
             </View>
@@ -176,9 +176,9 @@ export function LookCarousel({
         keyExtractor={(item) => item.id}
         renderItem={renderLookCard}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + 48}
+        snapToAlignment="start"
         decelerationRate="fast"
         contentContainerStyle={{ paddingVertical: 8 }}
         onMomentumScrollEnd={(e) => {
@@ -217,7 +217,7 @@ export function LookCarousel({
             <View className="w-12 h-12 rounded-full bg-surface dark:bg-surface-dark border border-border/30 dark:border-border-dark/30 items-center justify-center">
               <ThumbsDown size={20} color={isDark ? "#9C948A" : "#7A7269"} />
             </View>
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               Not me
             </Text>
           </TouchableOpacity>
@@ -241,7 +241,7 @@ export function LookCarousel({
                 fill={looks[currentIndex]?.isLiked ? "#FFFFFF" : "transparent"}
               />
             </View>
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               Love it
             </Text>
           </TouchableOpacity>
@@ -271,7 +271,7 @@ export function LookCarousel({
                 fill={looks[currentIndex]?.isSaved ? "#FFFFFF" : "transparent"}
               />
             </View>
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
               Save
             </Text>
           </TouchableOpacity>

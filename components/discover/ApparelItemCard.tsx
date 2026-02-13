@@ -139,7 +139,7 @@ export function ApparelItemCard({
       {/* Content */}
       <View className="p-3">
         {item.brand && (
-          <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mb-1">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mb-1">
             {item.brand}
           </Text>
         )}
@@ -155,7 +155,7 @@ export function ApparelItemCard({
             {item.currency} {item.price.toLocaleString()}
           </Text>
           {hasDiscount && (
-            <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark line-through">
+            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground line-through">
               {item.currency} {item.originalPrice!.toLocaleString()}
             </Text>
           )}
@@ -172,7 +172,7 @@ export function ApparelItemCard({
               />
             ))}
             {item.colors.length > 3 && (
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark ml-1">
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground ml-1">
                 +{item.colors.length - 3}
               </Text>
             )}

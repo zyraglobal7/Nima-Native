@@ -25,7 +25,7 @@ export function PromptSuggestions({
   return (
     <View className="gap-3 w-full px-4">
       <Animated.View entering={FadeIn.duration(300)}>
-        <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark text-center mb-1">
+        <Text className="text-sm font-medium text-muted-foreground dark:text-muted-dark-foreground text-center mb-1">
           Try asking for:
         </Text>
       </Animated.View>

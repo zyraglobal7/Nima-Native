@@ -33,6 +33,8 @@ import {
 } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import * as Clipboard from "expo-clipboard";
+import { CreditsModal } from "@/components/credits/CreditsModal";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 /* ─── Types ─── */
 
@@ -59,6 +61,7 @@ export function CreateLookSheet({
   onClearSelection,
 }: CreateLookSheetProps) {
   const router = useRouter();
+  const { isDark } = useTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const [status, setStatus] = useState<GenerationStatus>("idle");
@@ -73,6 +76,7 @@ export function CreateLookSheet({
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
 
   const createLookFromItems = useMutation(
     api.looks.mutations.createLookFromSelectedItems,
@@ -156,6 +160,9 @@ export function CreateLookSheet({
       if (result.success && result.lookId) {
         setLookId(result.lookId);
         setStatus("generating");
+      } else if (result.error === "insufficient_credits") {
+        setStatus("idle");
+        setShowCreditsModal(true);
       } else {
         setStatus("failed");
         setError(result.error || "Failed to create look");
@@ -277,11 +284,11 @@ export function CreateLookSheet({
       onClose={onClose}
       backdropComponent={renderBackdrop}
       backgroundStyle={{
-        backgroundColor: "#FAF8F5",
+        backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
       }}
-      handleIndicatorStyle={{ backgroundColor: "#9C948A", width: 48 }}
+      handleIndicatorStyle={{ backgroundColor: isDark ? "#706B63" : "#9C948A", width: 48 }}
     >
       <BottomSheetView style={{ flex: 1 }}>
         {/* Header */}
@@ -292,7 +299,7 @@ export function CreateLookSheet({
                 ? "Your Look is Ready! ✨"
                 : "Create Your Look"}
             </Text>
-            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-0.5">
               {status === "completed"
                 ? "Share it with the world or keep it private"
                 : `${selectedItems.length} items selected`}
@@ -473,7 +480,7 @@ export function CreateLookSheet({
                       />
                     ) : (
                       <View className="flex-1 bg-surface-alt dark:bg-surface-alt-dark items-center justify-center">
-                        <Text className="text-2xl text-muted-foreground/40 dark:text-muted-foreground-dark/40">
+                        <Text className="text-2xl text-muted-foreground/40 dark:text-muted-dark-foreground/40">
                           {item.category.charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -498,7 +505,7 @@ export function CreateLookSheet({
 
               {/* Price summary */}
               <View className="flex-row items-center justify-between p-4 bg-surface dark:bg-surface-dark rounded-xl mb-4">
-                <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground">
                   Total price
                 </Text>
                 <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
@@ -510,7 +517,7 @@ export function CreateLookSheet({
               {status === "creating" && (
                 <View className="flex-row items-center justify-center gap-3 p-4 bg-surface dark:bg-surface-dark rounded-xl mb-4">
                   <ActivityIndicator size="small" color="#A67C52" />
-                  <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground">
                     Creating your look...
                   </Text>
                 </View>
@@ -560,7 +567,7 @@ export function CreateLookSheet({
               </TouchableOpacity>
             </View>
           ) : status === "completed" && !isSaved ? (
-            <Text className="text-center text-xs text-muted-foreground dark:text-muted-foreground-dark">
+            <Text className="text-center text-xs text-muted-foreground dark:text-muted-dark-foreground">
               Save or discard your look to continue
             </Text>
           ) : (
@@ -603,7 +610,7 @@ export function CreateLookSheet({
               </TouchableOpacity>
 
               {selectedItems.length < 2 && (
-                <Text className="text-center text-xs text-muted-foreground dark:text-muted-foreground-dark mt-2">
+                <Text className="text-center text-xs text-muted-foreground dark:text-muted-dark-foreground mt-2">
                   Select at least 2 items to create a look
                 </Text>
               )}
@@ -617,6 +624,12 @@ export function CreateLookSheet({
           )}
         </View>
       </BottomSheetView>
+
+      {/* Credits Modal */}
+      <CreditsModal
+        visible={showCreditsModal}
+        onClose={() => setShowCreditsModal(false)}
+      />
     </BottomSheet>
   );
 }

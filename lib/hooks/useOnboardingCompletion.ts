@@ -115,6 +115,7 @@ export function useOnboardingCompletion() {
   const completeOnboarding = useMutation(api.users.mutations.completeOnboarding);
   const markOnboardingComplete = useMutation(api.users.mutations.markOnboardingComplete);
   const claimOnboardingImages = useMutation(api.userImages.mutations.claimOnboardingImages);
+  const startOnboardingWorkflow = useMutation(api.workflows.index.startOnboardingWorkflow);
 
   const processOnboarding = useCallback(async () => {
     // Prevent double processing
@@ -230,13 +231,23 @@ export function useOnboardingCompletion() {
             3,
             500
           );
-          console.log(`[ONBOARDING] Claimed ${claimResult.claimedCount} images`);
+          console.log(`[ONBOARDING_COMPLETION] Claimed ${claimResult.claimedCount} onboarding images`);
         } catch (claimError) {
-          console.error('[ONBOARDING] Failed to claim images:', claimError);
+          console.error('[ONBOARDING_COMPLETION] Failed to claim images:', claimError);
         }
       }
 
+      // Step 3: Start onboarding workflow (generates AI looks)
+      try {
+        const workflowResult = await startOnboardingWorkflow({});
+        console.log('[ONBOARDING_COMPLETION] Onboarding workflow started:', workflowResult);
+      } catch (wfError) {
+        console.error('[ONBOARDING_COMPLETION] Failed to start workflow:', wfError);
+        // Non-fatal: user can still use the app, looks will just be delayed
+      }
+
       await clearStoredOnboardingData();
+      console.log('[ONBOARDING_COMPLETION] Onboarding completed successfully');
       setCompleted(true);
     } catch (err) {
       console.error('[ONBOARDING] Failed to complete:', err);
@@ -245,7 +256,7 @@ export function useOnboardingCompletion() {
       setIsProcessing(false);
       processingRef.current = false;
     }
-  }, [user, onboardingState, getOrCreateUser, completeOnboarding, markOnboardingComplete, claimOnboardingImages]);
+  }, [user, onboardingState, getOrCreateUser, completeOnboarding, markOnboardingComplete, claimOnboardingImages, startOnboardingWorkflow]);
 
   useEffect(() => {
     processOnboarding();

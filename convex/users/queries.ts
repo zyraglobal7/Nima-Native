@@ -133,6 +133,10 @@ export const getCurrentUser = query({
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
+      // Credits system
+      credits: v.optional(v.number()),
+      freeCreditsUsedThisWeek: v.optional(v.number()),
+      weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
@@ -200,6 +204,10 @@ export const getUser = query({
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
+      // Credits system
+      credits: v.optional(v.number()),
+      freeCreditsUsedThisWeek: v.optional(v.number()),
+      weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
@@ -270,6 +278,10 @@ export const getUserByWorkosId = query({
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
+      // Credits system
+      credits: v.optional(v.number()),
+      freeCreditsUsedThisWeek: v.optional(v.number()),
+      weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),

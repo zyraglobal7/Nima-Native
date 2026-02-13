@@ -57,7 +57,7 @@ export function Select({
           className={cn(
             "text-sm",
             !selectedOption &&
-              "text-muted-foreground dark:text-muted-foreground-dark",
+              "text-muted-foreground dark:text-muted-dark-foreground",
           )}
         >
           {selectedOption?.label || placeholder}
