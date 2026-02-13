@@ -15,6 +15,7 @@ import { api } from "@/convex/_generated/api";
 import { Save, Users, ChevronRight, X } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { FriendsList } from "@/components/friends/FriendsList";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 export function AccountTab() {
   const currentUser = useQuery(api.users.queries.getCurrentUser);
@@ -66,27 +67,31 @@ export function AccountTab() {
     }
   };
 
-  if (!currentUser) return <ActivityIndicator />;
+  const { isDark } = useTheme();
+
+  const btnFg = isDark ? "#1A1614" : "#fff";
+
+  if (!currentUser) return <ActivityIndicator color={isDark ? "#C9A07A" : "#5C2A33"} />;
 
   return (
     <ScrollView
-      className="flex-1"
+      className="flex-1 bg-background dark:bg-background-dark"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 80 }}
     >
       {/* Profile Info Tile */}
-      <View className="bg-surface rounded-xl border border-border p-4 mb-6">
+      <View className="bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark p-4 mb-6">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-base font-medium text-foreground font-serif">
+          <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
             Profile Information
           </Text>
           <TouchableOpacity
             onPress={
               isEditingProfile ? cancelEdit : () => setIsEditingProfile(true)
             }
-            className="px-3 py-1.5 rounded-lg bg-surface-alt"
+            className="px-3 py-1.5 rounded-lg bg-surface-alt dark:bg-surface-alt-dark"
           >
-            <Text className="text-sm font-medium text-foreground font-sans">
+            <Text className="text-sm font-medium text-foreground dark:text-foreground-dark font-sans">
               {isEditingProfile ? "Cancel" : "Edit"}
             </Text>
           </TouchableOpacity>
@@ -96,27 +101,27 @@ export function AccountTab() {
           <View className="space-y-4">
             <View className="flex-row gap-4">
               <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground mb-1.5 font-sans">
+                <Text className="text-sm font-medium text-foreground dark:text-foreground-dark mb-1.5 font-sans">
                   First Name
                 </Text>
                 <TextInput
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="First name"
-                  placeholderTextColor="#9CA3AF"
-                  className="bg-background border border-border rounded-lg px-3 py-2 text-foreground font-sans h-10"
+                  placeholderTextColor={isDark ? "#8C8078" : "#9CA3AF"}
+                  className="bg-background dark:bg-background-dark border border-border dark:border-border-dark rounded-lg px-3 py-2 text-foreground dark:text-foreground-dark font-sans h-10"
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground mb-1.5 font-sans">
+                <Text className="text-sm font-medium text-foreground dark:text-foreground-dark mb-1.5 font-sans">
                   Last Name
                 </Text>
                 <TextInput
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Last name"
-                  placeholderTextColor="#9CA3AF"
-                  className="bg-background border border-border rounded-lg px-3 py-2 text-foreground font-sans h-10"
+                  placeholderTextColor={isDark ? "#8C8078" : "#9CA3AF"}
+                  className="bg-background dark:bg-background-dark border border-border dark:border-border-dark rounded-lg px-3 py-2 text-foreground dark:text-foreground-dark font-sans h-10"
                 />
               </View>
             </View>
@@ -124,14 +129,14 @@ export function AccountTab() {
             <TouchableOpacity
               onPress={handleSave}
               disabled={saving}
-              className="bg-primary rounded-lg py-2.5 items-center flex-row justify-center space-x-2"
+              className="bg-primary dark:bg-primary-dark rounded-lg py-2.5 items-center flex-row justify-center space-x-2"
             >
               {saving ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={btnFg} size="small" />
               ) : (
                 <>
-                  <Save size={16} color="#fff" />
-                  <Text className="text-primary-foreground font-medium font-sans">
+                  <Save size={16} color={btnFg} />
+                  <Text className="text-primary-foreground dark:text-primary-dark-foreground font-medium font-sans">
                     Save Changes
                   </Text>
                 </>
@@ -141,26 +146,26 @@ export function AccountTab() {
         ) : (
           <View className="space-y-3">
             <View className="flex-row justify-between items-center">
-              <Text className="text-muted-foreground text-sm font-sans">
+              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm font-sans">
                 Name
               </Text>
-              <Text className="text-foreground text-sm font-sans font-medium">
+              <Text className="text-foreground dark:text-foreground-dark text-sm font-sans font-medium">
                 {currentUser.firstName || "-"} {currentUser.lastName || ""}
               </Text>
             </View>
             <View className="flex-row justify-between items-center">
-              <Text className="text-muted-foreground text-sm font-sans">
+              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm font-sans">
                 Email
               </Text>
-              <Text className="text-foreground text-sm font-sans font-medium">
+              <Text className="text-foreground dark:text-foreground-dark text-sm font-sans font-medium">
                 {currentUser.email}
               </Text>
             </View>
             <View className="flex-row justify-between items-center">
-              <Text className="text-muted-foreground text-sm font-sans">
+              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm font-sans">
                 Country
               </Text>
-              <Text className="text-foreground text-sm font-sans font-medium">
+              <Text className="text-foreground dark:text-foreground-dark text-sm font-sans font-medium">
                 {currentUser.country || "-"}
               </Text>
             </View>
@@ -171,22 +176,22 @@ export function AccountTab() {
       {/* Friends Card */}
       <TouchableOpacity
         onPress={() => setShowFriends(true)}
-        className="bg-surface rounded-xl border border-border p-4 flex-row items-center justify-between"
+        className="bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark p-4 flex-row items-center justify-between"
       >
         <View className="flex-row items-center gap-3">
-          <View className="bg-primary/10 p-2 rounded-full">
-            <Users size={20} className="text-primary" />
+          <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-full">
+            <Users size={20} className="text-primary dark:text-primary-dark" />
           </View>
           <View>
-            <Text className="font-medium text-foreground text-base font-serif">
+            <Text className="font-medium text-foreground dark:text-foreground-dark text-base font-serif">
               Friends
             </Text>
-            <Text className="text-sm text-muted-foreground font-sans">
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
               Manage your connections
             </Text>
           </View>
         </View>
-        <ChevronRight size={20} className="text-muted-foreground" />
+        <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
       </TouchableOpacity>
 
       {/* Friends Modal */}
@@ -196,16 +201,16 @@ export function AccountTab() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowFriends(false)}
       >
-        <SafeAreaView className="flex-1 bg-background">
-          <View className="px-4 py-4 border-b border-border flex-row items-center justify-between">
-            <Text className="text-xl font-serif font-medium text-foreground">
+        <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
+          <View className="px-4 py-4 border-b border-border dark:border-border-dark flex-row items-center justify-between">
+            <Text className="text-xl font-serif font-medium text-foreground dark:text-foreground-dark">
               Friends
             </Text>
             <TouchableOpacity
               onPress={() => setShowFriends(false)}
-              className="p-2 bg-surface-alt rounded-full"
+              className="p-2 bg-surface-alt dark:bg-surface-alt-dark rounded-full"
             >
-              <X size={24} className="text-foreground" />
+              <X size={24} className="text-foreground dark:text-foreground-dark" />
             </TouchableOpacity>
           </View>
           <View className="flex-1 px-4 pt-4">

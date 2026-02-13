@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Crypto from 'expo-crypto';
@@ -243,11 +244,23 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
 
     const authUrl = `${WORKOS_AUTH_URL}?${params.toString()}`;
 
+    // On web, persist the PKCE verifier to sessionStorage so the /callback
+    // page can complete the exchange if the popup flow fails (e.g. popup blocked).
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('workos_pkce_verifier', codeVerifier);
+      sessionStorage.setItem('workos_redirect_uri', REDIRECT_URI);
+    }
+
     // Open in-app browser
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
 
     if (result.type !== 'success' || !result.url) {
       console.log('[AUTH] Auth session cancelled or failed:', result.type);
+      // Clean up persisted verifier on failure
+      if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('workos_pkce_verifier');
+        sessionStorage.removeItem('workos_redirect_uri');
+      }
       return null;
     }
 
@@ -296,6 +309,12 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
       setRefreshToken(refreshTokenValue),
       setUserInfo(userInfo),
     ]);
+
+    // Clean up persisted verifier after successful popup flow
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('workos_pkce_verifier');
+      sessionStorage.removeItem('workos_redirect_uri');
+    }
 
     return { accessToken, refreshToken: refreshTokenValue, user: userInfo };
   } catch (error) {

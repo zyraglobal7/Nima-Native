@@ -63,7 +63,7 @@ export default function LookbookDetailScreen() {
     }
     try {
       await Clipboard.setStringAsync(
-        `https://nima.style/lookbook/shared/${lookbook.shareToken}`,
+        `https://www.shopnima.ai/lookbook/shared/${lookbook.shareToken}`,
       );
       Alert.alert("Copied", "Share link copied to clipboard!");
     } catch {
@@ -224,11 +224,11 @@ export default function LookbookDetailScreen() {
             </View>
           )}
           {lookbook.description && !isEditing && (
-            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-1">
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-1">
               {lookbook.description}
             </Text>
           )}
-          <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-1.5">
+          <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mt-1.5">
             {lookbook.itemCount} {lookbook.itemCount === 1 ? "item" : "items"}
           </Text>
         </View>

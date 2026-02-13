@@ -44,11 +44,11 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
       <View className="flex-1 px-4 pt-4">
         <ProfileHeader onEdit={() => setActiveTab("account")} />
 
-        <View className="flex-row bg-surface p-1 rounded-xl mb-6">
+        <View className="flex-row bg-surface dark:bg-surface-dark p-1 rounded-xl mb-6">
           <TabButton
             active={activeTab === "settings"}
             onPress={() => setActiveTab("settings")}
@@ -90,12 +90,12 @@ function TabButton({
     <TouchableOpacity
       onPress={onPress}
       className={`flex-1 items-center justify-center py-2.5 rounded-lg ${
-        active ? "bg-background shadow-sm" : ""
-      }`}
-    >
+        active ? "bg-background dark:bg-background-dark shadow-sm" : ""
+        }`}
+      >
       <Text
         className={`text-sm font-medium ${
-          active ? "text-foreground" : "text-muted-foreground"
+          active ? "text-foreground dark:text-foreground-dark" : "text-muted-foreground dark:text-muted-dark-foreground"
         }`}
       >
         {label}

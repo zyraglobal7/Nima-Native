@@ -191,7 +191,7 @@ export default function FittingRoomScreen() {
           <Text className="text-lg font-medium text-foreground dark:text-foreground-dark">
             Loading your looks...
           </Text>
-          <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground">
             Getting everything ready
           </Text>
         </View>
@@ -211,7 +211,7 @@ export default function FittingRoomScreen() {
         <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mb-2">
           No looks found
         </Text>
-        <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark text-center mb-6">
+        <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground text-center mb-6">
           These looks may have expired or been removed.
         </Text>
         <TouchableOpacity
@@ -288,14 +288,14 @@ export default function FittingRoomScreen() {
         {currentLook && (
           <Animated.View
             entering={FadeInUp.duration(300)}
-            className="mx-4 mt-6 mb-4"
+            className="mx-4 mt-6 mb-2"
           >
-            <View className="flex-row items-start gap-3 bg-surface/60 dark:bg-surface-dark/60 rounded-xl p-3 border border-border/20 dark:border-border-dark/20">
-              <View className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary-dark/10 items-center justify-center mt-0.5">
-                <Sparkles size={14} color={isDark ? "#C9A07A" : "#A67C52"} />
+            <View className="flex-row items-start gap-3 bg-surface/80 dark:bg-surface-dark/80 rounded-2xl p-4 border border-border/20 dark:border-border-dark/20">
+              <View className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary-dark/10 items-center justify-center mt-0.5">
+                <Sparkles size={16} color={isDark ? "#C9A07A" : "#A67C52"} />
               </View>
               <View className="flex-1">
-                <Text className="text-xs font-semibold text-primary dark:text-primary-dark mb-0.5">
+                <Text className="text-xs font-semibold text-primary dark:text-primary-dark mb-1">
                   Nima's Note
                 </Text>
                 <Text className="text-sm text-foreground/80 dark:text-foreground-dark/80 leading-relaxed font-sans">
@@ -308,20 +308,29 @@ export default function FittingRoomScreen() {
 
         {/* Price summary */}
         {currentLook && (
-          <View className="mx-4 mb-4 flex-row items-center justify-between bg-surface dark:bg-surface-dark rounded-xl px-4 py-3 border border-border/20 dark:border-border-dark/20">
-            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-              Total for {currentProducts.length} items
-            </Text>
-            <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-              {formatPrice(currentLook.totalPrice, currentLook.currency)}
-            </Text>
+          <View className="mx-4 my-4 flex-row items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl px-5 py-4 border border-border/20 dark:border-border-dark/20">
+            <View>
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mb-0.5">
+                Total for {currentProducts.length} items
+              </Text>
+              <Text className="text-xl font-bold text-foreground dark:text-foreground-dark">
+                {formatPrice(currentLook.totalPrice, currentLook.currency)}
+              </Text>
+            </View>
+            {currentLook.occasion && (
+              <View className="px-3 py-1.5 bg-primary/10 dark:bg-primary-dark/10 rounded-full">
+                <Text className="text-primary dark:text-primary-dark text-xs font-medium capitalize">
+                  {currentLook.occasion}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
         {/* Products list */}
         {currentProducts.length > 0 && (
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-muted-foreground dark:text-muted-foreground-dark uppercase tracking-wider px-4 mb-3">
+          <View className="mb-4 mt-2">
+            <Text className="text-sm font-semibold text-muted-foreground dark:text-muted-dark-foreground uppercase tracking-wider px-4 mb-3">
               Items in this look
             </Text>
             {currentProducts.map((product, index) => (

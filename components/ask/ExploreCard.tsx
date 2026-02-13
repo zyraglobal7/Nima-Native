@@ -28,7 +28,7 @@ export function ExploreCard({ animate = true, onExplore }: ExploreCardProps) {
             <Text className="text-base font-semibold text-foreground dark:text-foreground-dark mb-1">
               No exact matches found
             </Text>
-            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark leading-relaxed font-sans">
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground leading-relaxed font-sans">
               I couldn't find items that perfectly match your request right now.
               Try exploring public looks for inspiration!
             </Text>

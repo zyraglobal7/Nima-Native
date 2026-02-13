@@ -336,7 +336,7 @@ export default function DiscoverScreen() {
           <Text className="text-2xl font-serif text-foreground dark:text-foreground-dark">
             {headerTitle}
           </Text>
-          <Text className="text-muted-foreground dark:text-muted-foreground-dark mt-1">
+          <Text className="text-muted-foreground dark:text-muted-dark-foreground mt-1">
             {headerSubtitle}
           </Text>
         </View>

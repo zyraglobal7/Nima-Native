@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Nima",
-    "slug": "nima-native",
+    "slug": "nima-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2cd055b1-947c-4f4e-9878-0cb65c8cf604"
+      }
+    },
+    "owner": "nima-ais-organization"
   }
 }

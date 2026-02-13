@@ -158,7 +158,7 @@ export default function LookDetailScreen() {
   const handleShare = async () => {
     const publicId = lookData?.look.publicId || id;
     try {
-      await Clipboard.setStringAsync(`https://nima.style/look/${publicId}`);
+      await Clipboard.setStringAsync(`https://www.shopnima.ai/look/${publicId}`);
       Alert.alert("Copied", "Link copied to clipboard!");
     } catch {
       // Ignore
@@ -175,8 +175,13 @@ export default function LookDetailScreen() {
         lookId: lookInternalId,
       });
       await recordSave({ lookId: lookInternalId });
-    } catch {
-      Alert.alert("Error", "Failed to save to lookbook");
+    } catch (error: any) {
+      const message =
+        error?.message?.includes("already exists") ||
+        error?.data?.includes("already exists")
+          ? "Already saved to this lookbook"
+          : "Failed to save to lookbook";
+      Alert.alert(message === "Already saved to this lookbook" ? "Already Saved" : "Error", message);
     } finally {
       setIsSaving(false);
     }
@@ -359,7 +364,7 @@ export default function LookDetailScreen() {
               />
               <View className="flex-row items-center gap-2 mt-4">
                 <Sparkles size={16} color={isDark ? "#C9A07A" : "#A67C52"} />
-                <Text className="text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-muted-foreground dark:text-muted-dark-foreground">
                   Generating your look...
                 </Text>
               </View>
@@ -413,14 +418,14 @@ export default function LookDetailScreen() {
         {/* Content */}
         <Animated.View
           entering={FadeInDown.delay(100).duration(400)}
-          className="px-4 py-6 gap-5"
+          className="px-4 pt-5 pb-6"
         >
           {/* Action Buttons */}
-          <View className="flex-row justify-center gap-8">
+          <View className="flex-row justify-center gap-8 mb-6">
             {/* Dislike */}
             <TouchableOpacity
               onPress={handleDislike}
-              className={`items-center gap-1 ${
+              className={`items-center gap-1.5 ${
                 userInteraction?.isDisliked ? "opacity-100" : "opacity-60"
               }`}
             >
@@ -451,7 +456,7 @@ export default function LookDetailScreen() {
                   }
                 />
               </View>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                 Not for me
               </Text>
             </TouchableOpacity>
@@ -459,7 +464,7 @@ export default function LookDetailScreen() {
             {/* Love */}
             <TouchableOpacity
               onPress={handleLove}
-              className="items-center gap-1"
+              className="items-center gap-1.5"
             >
               <View
                 className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
@@ -496,7 +501,7 @@ export default function LookDetailScreen() {
             {/* Save */}
             <TouchableOpacity
               onPress={handleSavePress}
-              className="items-center gap-1"
+              className="items-center gap-1.5"
             >
               <View
                 className={`w-12 h-12 rounded-full items-center justify-center border ${
@@ -525,22 +530,32 @@ export default function LookDetailScreen() {
                   }
                 />
               </View>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                 {interactionCounts?.saveCount || 0}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Nima Comment */}
-          {look.nimaComment && <NimaChatBubble message={look.nimaComment} />}
+          {look.nimaComment && (
+            <View className="mb-6">
+              <NimaChatBubble message={look.nimaComment} />
+            </View>
+          )}
+
+          {/* Divider */}
+          <View className="h-px bg-border/40 dark:bg-border-dark/40 mb-6" />
 
           {/* Price + Occasion */}
-          <View className="flex-row items-center justify-between bg-surface dark:bg-surface-dark rounded-xl p-4 border border-border/30 dark:border-border-dark/30">
+          <View className="flex-row items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl p-5 border border-border/30 dark:border-border-dark/30 mb-6">
             <View>
+              <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground mb-0.5">
+                Total Price
+              </Text>
               <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
                 {formatPrice(look.totalPrice, look.currency)}
               </Text>
-              <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+              <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-0.5">
                 {products.length} items
               </Text>
             </View>
@@ -555,7 +570,7 @@ export default function LookDetailScreen() {
 
           {/* Products list */}
           <View>
-            <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mb-4">
+            <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark mb-4">
               Shop this look
             </Text>
 
@@ -574,27 +589,29 @@ export default function LookDetailScreen() {
             )}
 
             {products.length > 0 ? (
-              products.map(({ item, primaryImageUrl }, index) => (
-                <ProductCard
-                  key={item._id}
-                  product={{
-                    _id: item._id,
-                    publicId: item.publicId,
-                    name: item.name,
-                    brand: item.brand,
-                    category: item.category,
-                    price: item.price,
-                    currency: item.currency,
-                    primaryImageUrl: primaryImageUrl,
-                    sourceUrl: item.sourceUrl,
-                    sourceStore: item.sourceStore,
-                  }}
-                  index={index}
-                />
-              ))
+              <View className="gap-3">
+                {products.map(({ item, primaryImageUrl }, index) => (
+                  <ProductCard
+                    key={item._id}
+                    product={{
+                      _id: item._id,
+                      publicId: item.publicId,
+                      name: item.name,
+                      brand: item.brand,
+                      category: item.category,
+                      price: item.price,
+                      currency: item.currency,
+                      primaryImageUrl: primaryImageUrl,
+                      sourceUrl: item.sourceUrl,
+                      sourceStore: item.sourceStore,
+                    }}
+                    index={index}
+                  />
+                ))}
+              </View>
             ) : (
               <View className="py-8 items-center">
-                <Text className="text-muted-foreground dark:text-muted-foreground-dark">
+                <Text className="text-muted-foreground dark:text-muted-dark-foreground">
                   No items available to display.
                 </Text>
               </View>
@@ -669,8 +686,12 @@ export default function LookDetailScreen() {
         snapPoints={snapPoints}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
+        style={{
+          marginHorizontal: 12,
+        }}
         backgroundStyle={{
           backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
+          borderRadius: 24,
         }}
         handleIndicatorStyle={{
           backgroundColor: isDark ? "#706B63" : "#C4BFB8",
@@ -680,7 +701,7 @@ export default function LookDetailScreen() {
           <Text className="text-xl font-serif font-semibold text-foreground dark:text-foreground-dark mb-1">
             Save to Lookbook
           </Text>
-          <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mb-6">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mb-6">
             Organize your favorite looks into collections
           </Text>
 
@@ -699,7 +720,7 @@ export default function LookDetailScreen() {
             ) : userLookbooks.length === 0 ? (
               <View className="py-6 items-center">
                 <Sparkles size={24} color={isDark ? "#9C948A" : "#706B63"} />
-                <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-3">
+                <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-3">
                   No lookbooks yet. Create one below!
                 </Text>
               </View>
@@ -729,7 +750,7 @@ export default function LookDetailScreen() {
                       <Text className="font-medium text-foreground dark:text-foreground-dark">
                         {lookbook.name}
                       </Text>
-                      <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                      <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
                         {lookbook.itemCount} items
                       </Text>
                     </View>

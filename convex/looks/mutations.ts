@@ -778,6 +778,19 @@ export const createLookFromSelectedItems = mutation({
       };
     }
 
+    // --- CREDIT CHECK (1 credit per look) ---
+    const creditResult = await ctx.runMutation(internal.credits.mutations.deductCredit, {
+      userId: user._id,
+      count: 1,
+    });
+
+    if (!creditResult.success) {
+      return {
+        success: false,
+        error: 'insufficient_credits',
+      };
+    }
+
     // Validate item count
     if (args.itemIds.length < 2) {
       return {

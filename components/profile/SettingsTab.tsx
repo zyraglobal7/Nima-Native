@@ -30,33 +30,33 @@ export function SettingsTab() {
 
   return (
     <ScrollView
-      className="flex-1 bg-background"
+      className="flex-1 bg-background dark:bg-background-dark"
       showsVerticalScrollIndicator={false}
     >
       {/* Settings Sections */}
       <View className="space-y-6 pb-20">
         {/* Appearance */}
         <View>
-          <Text className="text-lg font-serif font-medium text-foreground mb-3">
+          <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark mb-3">
             Appearance
           </Text>
-          <View className="bg-surface rounded-xl overflow-hidden border border-border">
+          <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark">
             <View className="flex-row items-center justify-between p-4">
               <View className="flex-row items-center space-x-3">
                 {isDark ? (
-                  <Moon size={20} className="text-foreground" />
+                  <Moon size={20} className="text-foreground dark:text-foreground-dark" />
                 ) : (
-                  <Sun size={20} className="text-foreground" />
+                  <Sun size={20} className="text-foreground dark:text-foreground-dark" />
                 )}
-                <Text className="text-base text-foreground font-sans">
+                <Text className="text-base text-foreground dark:text-foreground-dark font-sans">
                   Dark Mode
                 </Text>
               </View>
               <Switch
                 value={isDark}
                 onValueChange={toggleTheme}
-                trackColor={{ false: "#E0D8CC", true: "#5C2A33" }}
-                thumbColor={isDark ? "#FAF8F5" : "#f4f3f4"}
+                trackColor={{ false: "#E0D8CC", true: "#C9A07A" }}
+                thumbColor={isDark ? "#1A1614" : "#f4f3f4"}
               />
             </View>
           </View>
@@ -64,41 +64,41 @@ export function SettingsTab() {
 
         {/* Your Activity */}
         <View>
-          <Text className="text-lg font-serif font-medium text-foreground mb-3">
+          <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark mb-3">
             Your Activity
           </Text>
-          <View className="bg-surface rounded-xl overflow-hidden border border-border divide-y divide-border">
+          <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark divide-y divide-border dark:divide-border-dark">
             <Link href="/profile/discarded-looks" asChild>
               <TouchableOpacity className="flex-row items-center justify-between p-4">
                 <View className="flex-row items-center space-x-3 flex-1">
-                  <Trash2 size={24} className="text-foreground" />
+                  <Trash2 size={24} className="text-foreground dark:text-foreground-dark" />
                   <View>
-                    <Text className="text-base font-medium text-foreground font-serif">
+                    <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                       Discarded Looks
                     </Text>
-                    <Text className="text-sm text-muted-foreground font-sans">
+                    <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
                       View and restore discarded looks
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={20} className="text-muted-foreground" />
+                <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
               </TouchableOpacity>
             </Link>
 
             <Link href="/orders" asChild>
               <TouchableOpacity className="flex-row items-center justify-between p-4">
                 <View className="flex-row items-center space-x-3 flex-1">
-                  <ShoppingBag size={24} className="text-foreground" />
+                  <ShoppingBag size={24} className="text-foreground dark:text-foreground-dark" />
                   <View>
-                    <Text className="text-base font-medium text-foreground font-serif">
+                    <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                       My Orders
                     </Text>
-                    <Text className="text-sm text-muted-foreground font-sans">
+                    <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
                       Track and manage your purchases
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={20} className="text-muted-foreground" />
+                <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
               </TouchableOpacity>
             </Link>
           </View>
@@ -106,38 +106,38 @@ export function SettingsTab() {
 
         {/* Account Settings */}
         <View>
-          <Text className="text-lg font-serif font-medium text-foreground mb-3">
+          <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark mb-3">
             Account Settings
           </Text>
-          <View className="bg-surface rounded-xl overflow-hidden border border-border divide-y divide-border">
+          <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark divide-y divide-border dark:divide-border-dark">
             <TouchableOpacity className="flex-row items-center justify-between p-4">
               <View className="flex-row items-center space-x-3 flex-1">
-                <Mail size={24} className="text-foreground" />
+                <Mail size={24} className="text-foreground dark:text-foreground-dark" />
                 <View>
-                  <Text className="text-base font-medium text-foreground font-serif">
+                  <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     Change Email
                   </Text>
-                  <Text className="text-sm text-muted-foreground font-sans">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
                     {currentUser?.email || "No email set"}
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground" />
+              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
             </TouchableOpacity>
 
             <TouchableOpacity className="flex-row items-center justify-between p-4">
               <View className="flex-row items-center space-x-3 flex-1">
-                <Lock size={24} className="text-foreground" />
+                <Lock size={24} className="text-foreground dark:text-foreground-dark" />
                 <View>
-                  <Text className="text-base font-medium text-foreground font-serif">
+                  <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     Change Password
                   </Text>
-                  <Text className="text-sm text-muted-foreground font-sans">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
                     Managed via Google Account
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground" />
+              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -145,42 +145,42 @@ export function SettingsTab() {
               className="flex-row items-center justify-between p-4"
             >
               <View className="flex-row items-center space-x-3 flex-1">
-                <LogOut size={24} className="text-destructive" />
+                <LogOut size={24} className="text-destructive dark:text-destructive-dark" />
                 <View>
-                  <Text className="text-base font-medium text-destructive font-serif">
+                  <Text className="text-base font-medium text-destructive dark:text-destructive-dark font-serif">
                     Log Out
                   </Text>
-                  <Text className="text-sm text-destructive-foreground/60 font-sans">
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
                     Sign out of your account
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-destructive/50" />
+              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Limits / Usage */}
-        <View className="bg-surface p-4 rounded-xl border border-border">
-          <Text className="text-base font-medium text-foreground mb-2 font-serif">
+        <View className="bg-surface dark:bg-surface-dark p-4 rounded-xl border border-border dark:border-border-dark">
+          <Text className="text-base font-medium text-foreground dark:text-foreground-dark mb-2 font-serif">
             Daily Try-Ons
           </Text>
-          <View className="h-2 bg-surface-alt rounded-full overflow-hidden mb-2">
+          <View className="h-2 bg-surface-alt dark:bg-surface-alt-dark rounded-full overflow-hidden mb-2">
             <View
               style={{
                 width: `${Math.min(((currentUser?.dailyTryOnCount || 0) / (currentUser?.subscriptionTier === "free" ? 5 : 100)) * 100, 100)}%`,
               }}
-              className="h-full bg-primary"
+              className="h-full bg-primary dark:bg-primary-dark"
             />
           </View>
-          <Text className="text-sm text-muted-foreground font-sans">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
             {currentUser?.dailyTryOnCount || 0} /{" "}
             {currentUser?.subscriptionTier === "free" ? 5 : "Unlimited"} used
             today
           </Text>
           {currentUser?.subscriptionTier === "free" && (
-            <TouchableOpacity className="mt-3 py-2 bg-background border border-primary rounded-lg items-center">
-              <Text className="text-primary font-medium font-sans">
+            <TouchableOpacity className="mt-3 py-2 bg-background dark:bg-background-dark border border-primary dark:border-primary-dark rounded-lg items-center">
+              <Text className="text-primary dark:text-primary-dark font-medium font-sans">
                 Upgrade to Style Pass
               </Text>
             </TouchableOpacity>

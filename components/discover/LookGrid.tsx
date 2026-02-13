@@ -84,7 +84,7 @@ export function LookGrid({
         <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mb-2 text-center">
           {emptyTitle}
         </Text>
-        <Text className="text-muted-foreground dark:text-muted-foreground-dark text-center max-w-xs">
+        <Text className="text-muted-foreground dark:text-muted-dark-foreground text-center max-w-xs">
           {emptyMessage}
         </Text>
         {emptyCTA && <View className="mt-6">{emptyCTA}</View>}

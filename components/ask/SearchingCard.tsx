@@ -117,7 +117,7 @@ export function SearchingCard({ animate = true }: SearchingCardProps) {
           </View>
 
           {/* Rotating message */}
-          <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mb-3 font-sans">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mb-3 font-sans">
             {currentMessage}
           </Text>
 

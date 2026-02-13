@@ -69,7 +69,7 @@ export function CategoryCarousel({
         <Text className="text-lg font-medium text-foreground dark:text-foreground-dark">
           {isInlineVariant ? "Explore Categories" : "Shop by Category"}
         </Text>
-        <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+        <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
           {categorySamples.length} categories
         </Text>
       </View>

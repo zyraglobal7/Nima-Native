@@ -1,6 +1,14 @@
 import { useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
-import { StepProps, STYLE_TAGS } from "../types";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Image,
+  Dimensions,
+  LayoutChangeEvent,
+} from "react-native";
+import { StepProps, STYLE_VIBE_CARDS } from "../types";
 import {
   trackStepCompleted,
   trackBackClicked,
@@ -8,24 +16,58 @@ import {
   ONBOARDING_STEPS,
 } from "@/lib/analytics";
 
+const CARD_GAP = 12;
+
 export function StyleVibeStep({ updateFormData, onNext, onBack }: StepProps) {
-  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
+  const [containerWidth, setContainerWidth] = useState(
+    Dimensions.get("window").width - 32, // fallback: screen width minus px-4 padding on each side
+  );
+  const cardWidth = Math.floor((containerWidth - CARD_GAP) / 2);
+  const cardHeight = Math.floor((cardWidth * 4) / 3);
 
-  const toggleStyle = (style: string) => {
-    const isCurrentlySelected = selectedStyles.includes(style);
-    trackStylePreferenceToggled(style, !isCurrentlySelected);
-
-    setSelectedStyles((prev) =>
-      isCurrentlySelected ? prev.filter((s) => s !== style) : [...prev, style],
-    );
+  const onGridLayout = (e: LayoutChangeEvent) => {
+    const w = Math.floor(e.nativeEvent.layout.width);
+    if (w > 0 && w !== containerWidth) {
+      setContainerWidth(w);
+    }
   };
+
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const toggleCard = (cardId: string) => {
+    const card = STYLE_VIBE_CARDS.find((c) => c.id === cardId);
+    if (!card) return;
+
+    const isCurrentlySelected = selectedCardIds.has(cardId);
+    trackStylePreferenceToggled(card.title, !isCurrentlySelected);
+
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev);
+      if (isCurrentlySelected) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+      return next;
+    });
+  };
+
+  // Collect all tags from selected cards
+  const selectedTags = STYLE_VIBE_CARDS.filter((c) =>
+    selectedCardIds.has(c.id),
+  ).flatMap((c) => c.tags);
+
+  // Deduplicate tags
+  const uniqueTags = [...new Set(selectedTags)];
 
   const handleContinue = () => {
     trackStepCompleted(ONBOARDING_STEPS.STYLE_VIBE, {
-      style_count: selectedStyles.length,
-      styles: selectedStyles,
+      style_count: selectedCardIds.size,
+      styles: uniqueTags,
     });
-    updateFormData({ stylePreferences: selectedStyles });
+    updateFormData({ stylePreferences: uniqueTags });
     onNext();
   };
 
@@ -49,7 +91,7 @@ export function StyleVibeStep({ updateFormData, onNext, onBack }: StepProps) {
                 What's your vibe?
               </Text>
               <Text className="text-sm text-muted-foreground mt-1">
-                Pick the styles that resonate with you
+                Tap the styles that resonate with you
               </Text>
             </View>
           </View>
@@ -57,8 +99,8 @@ export function StyleVibeStep({ updateFormData, onNext, onBack }: StepProps) {
           {/* Selection counter */}
           <View className="flex-row justify-between">
             <Text className="text-xs text-muted-foreground">
-              {selectedStyles.length} selected{" "}
-              {selectedStyles.length > 0 && "✓"}
+              {selectedCardIds.size} selected{" "}
+              {selectedCardIds.size > 0 && "✓"}
             </Text>
             <Text className="text-xs text-muted-foreground">
               Select at least 3
@@ -67,36 +109,117 @@ export function StyleVibeStep({ updateFormData, onNext, onBack }: StepProps) {
         </View>
       </View>
 
-      {/* Style Tags Grid */}
+      {/* Style Cards Grid */}
       <ScrollView
         className="flex-1 px-4 py-6"
-        contentContainerClassName="max-w-md mx-auto"
+        contentContainerClassName="max-w-md mx-auto pb-4"
       >
-        <View className="flex-row flex-wrap gap-3">
-          {STYLE_TAGS.map((style) => {
-            const isSelected = selectedStyles.includes(style);
+        {/* Measurement wrapper — always full-width so onLayout fires even when grid is empty */}
+        <View style={{ width: "100%" }} onLayout={onGridLayout}>
+          <View className="flex-row flex-wrap" style={{ gap: CARD_GAP }}>
+            {STYLE_VIBE_CARDS.map((card) => {
+            const isSelected = selectedCardIds.has(card.id);
             return (
-              <Pressable
-                key={style}
-                onPress={() => toggleStyle(style)}
-                className={`px-5 py-3 rounded-full border-2 ${
-                  isSelected
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-surface"
-                }`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              <View
+                key={card.id}
+                style={{
+                  width: cardWidth,
+                  height: cardHeight,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                }}
               >
-                <Text
-                  className={`text-sm font-medium ${
-                    isSelected ? "text-primary" : "text-foreground"
-                  }`}
+                <Pressable
+                  onPress={() => toggleCard(card.id)}
+                  style={({ pressed }) => ({
+                    width: cardWidth,
+                    height: cardHeight,
+                    opacity: pressed ? 0.85 : 1,
+                  })}
                 >
-                  {isSelected ? "✓ " : ""}
-                  {style}
-                </Text>
-              </Pressable>
+                  {/* Image */}
+                  <Image
+                    source={card.image}
+                    style={{
+                      width: cardWidth,
+                      height: cardHeight,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                    }}
+                    resizeMode="cover"
+                  />
+
+                  {/* Dark overlay at bottom for title */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: cardHeight * 0.35,
+                      backgroundColor: "rgba(0,0,0,0.45)",
+                      justifyContent: "flex-end",
+                      paddingHorizontal: 12,
+                      paddingBottom: 12,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {card.title}
+                    </Text>
+                  </View>
+
+                  {/* Selected overlay */}
+                  {isSelected && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        borderRadius: 16,
+                        borderWidth: 3,
+                        borderColor: "#5C2A33",
+                      }}
+                    >
+                      {/* Checkmark badge */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: "#5C2A33",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 14,
+                            fontWeight: "700",
+                          }}
+                        >
+                          ✓
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
             );
           })}
+          </View>
         </View>
       </ScrollView>
 
@@ -104,17 +227,17 @@ export function StyleVibeStep({ updateFormData, onNext, onBack }: StepProps) {
       <View className="bg-background border-t border-border/50 p-4">
         <Pressable
           onPress={handleContinue}
-          disabled={selectedStyles.length < 3}
+          disabled={selectedCardIds.size < 3}
           className={`w-full py-4 rounded-full items-center ${
-            selectedStyles.length >= 3 ? "bg-primary" : "bg-primary/50"
+            selectedCardIds.size >= 3 ? "bg-primary" : "bg-primary/50"
           }`}
           style={({ pressed }) => ({
-            opacity: selectedStyles.length >= 3 && pressed ? 0.85 : 1,
+            opacity: selectedCardIds.size >= 3 && pressed ? 0.85 : 1,
           })}
         >
           <Text className="text-primary-foreground text-base font-semibold tracking-wide">
-            {selectedStyles.length < 3
-              ? `Select ${3 - selectedStyles.length} more`
+            {selectedCardIds.size < 3
+              ? `Select ${3 - selectedCardIds.size} more`
               : "Continue"}
           </Text>
         </Pressable>

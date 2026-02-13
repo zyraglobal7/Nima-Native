@@ -31,7 +31,7 @@ export function ApparelGrid({
     return (
       <View className="flex-1 items-center justify-center py-16">
         <ActivityIndicator size="large" color="#A67C52" />
-        <Text className="text-muted-foreground dark:text-muted-foreground-dark mt-4">
+        <Text className="text-muted-foreground dark:text-muted-dark-foreground mt-4">
           Loading items...
         </Text>
       </View>
@@ -47,7 +47,7 @@ export function ApparelGrid({
         <Text className="text-lg font-medium text-foreground dark:text-foreground-dark mb-2">
           No items yet
         </Text>
-        <Text className="text-muted-foreground dark:text-muted-foreground-dark max-w-md text-center">
+        <Text className="text-muted-foreground dark:text-muted-dark-foreground max-w-md text-center">
           Check back soon for new apparel items.
         </Text>
       </View>
@@ -79,7 +79,7 @@ export function ApparelGrid({
         isLoadingMore ? (
           <View className="py-4 items-center">
             <ActivityIndicator size="small" color="#A67C52" />
-            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-2">
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-2">
               Loading more...
             </Text>
           </View>
