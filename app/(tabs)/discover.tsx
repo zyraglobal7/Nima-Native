@@ -21,6 +21,10 @@ import type { LookWithStatus, Product } from "@/components/discover/LookCard";
 import type { LookWithCreator } from "@/components/discover/LookCardWithCreator";
 import { useSelection } from "@/lib/contexts/SelectionContext";
 import { Sparkles, Users } from "lucide-react-native";
+import {
+  FloatingLookLoader,
+  type FloatingLoaderRef,
+} from "@/components/discover/FloatingLookLoader";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -31,6 +35,7 @@ export default function DiscoverScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [apparelSearchQuery, setApparelSearchQuery] = useState("");
   const [showCreateLookSheet, setShowCreateLookSheet] = useState(false);
+  const [workflowStarted, setWorkflowStarted] = useState(false);
 
   // Selection context
   const {
@@ -46,12 +51,24 @@ export default function DiscoverScreen() {
   // Track processed cursors to prevent re-processing
   const processedCursorsRef = useRef<Set<string | null>>(new Set());
 
+  // Floating loader ref for workflow status
+  const floatingLoaderRef = useRef<FloatingLoaderRef>(null);
+
   // Get current user for gender-based filtering
   const currentUser = useQuery(api.users.queries.getCurrentUser);
   const userGenderFilter =
     currentUser?.gender === "male" || currentUser?.gender === "female"
       ? currentUser.gender
       : undefined;
+
+  // ──────────────────────────────────────────────
+  // Workflow queries and mutations
+  // ──────────────────────────────────────────────
+  const shouldStartWorkflow = useQuery(
+    api.workflows.index.shouldStartOnboardingWorkflow
+  );
+  const workflowStatus = useQuery(api.workflows.index.getOnboardingWorkflowStatus);
+  const startWorkflow = useMutation(api.workflows.index.startOnboardingWorkflow);
 
   // ──────────────────────────────────────────────
   // Apparel tab queries
@@ -321,6 +338,42 @@ export default function DiscoverScreen() {
     [activeFilter, handleLoadMore],
   );
 
+  // ──────────────────────────────────────────────
+  // Workflow trigger - start onboarding workflow if needed
+  // ──────────────────────────────────────────────
+  useEffect(() => {
+    if (shouldStartWorkflow?.shouldStart && !workflowStarted) {
+      console.log("[DISCOVER] Starting onboarding workflow...");
+      setWorkflowStarted(true);
+
+      startWorkflow()
+        .then((result) => {
+          if (result.success) {
+            console.log("[DISCOVER] Workflow started:", result.workflowId);
+            // Show the floating loader in workflow mode
+            floatingLoaderRef.current?.startWorkflowLoading();
+          } else {
+            console.error("[DISCOVER] Failed to start workflow:", result.error);
+          }
+        })
+        .catch((error) => {
+          console.error("[DISCOVER] Error starting workflow:", error);
+        });
+    }
+  }, [shouldStartWorkflow, workflowStarted, startWorkflow]);
+
+  // Check workflow status and update floating loader when complete
+  useEffect(() => {
+    if (
+      workflowStatus &&
+      workflowStatus.isComplete &&
+      workflowStatus.completedCount > 0
+    ) {
+      console.log("[DISCOVER] Workflow complete!");
+      // Loader will automatically update via its internal useEffect
+    }
+  }, [workflowStatus]);
+
   // Get selected items array for CreateLookSheet
   const selectedItemsArray = Array.from(selectedItems.values());
 
@@ -483,6 +536,9 @@ export default function DiscoverScreen() {
         selectedItems={selectedItemsArray}
         onClearSelection={clearSelection}
       />
+
+      {/* Floating Loader for workflow status */}
+      <FloatingLookLoader ref={floatingLoaderRef} />
     </View>
   );
 }

@@ -54,7 +54,8 @@ function LayoutContent() {
     !pathname.startsWith("/messages") &&
     pathname !== "/callback" &&
     !pathname.includes("/fitting/") &&
-    !pathname?.startsWith("/(auth)");
+    !pathname?.startsWith("/(auth)") &&
+    !pathname?.includes("/category/");
 
   const backgroundColor = isDark ? "#1A1614" : "#FAF8F5";
 

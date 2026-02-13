@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { signOut } from "@/lib/auth";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Platform } from "react-native";
 
 export function SettingsTab() {
   const { isDark, setTheme } = useTheme();
@@ -25,7 +26,20 @@ export function SettingsTab() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace("/");
+
+    // On web, we need a page reload to clear Convex state
+    // On native, router.replace works fine after token is cleared
+    if (Platform.OS === "web") {
+      // Force a full page reload on web to clear all state
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
+    } else {
+      // On native, small delay to ensure Convex detects the token change
+      setTimeout(() => {
+        router.replace("/");
+      }, 100);
+    }
   };
 
   return (

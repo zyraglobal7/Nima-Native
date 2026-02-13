@@ -7,7 +7,7 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Text } from "@/components/ui/Text";
@@ -19,8 +19,8 @@ import { ProductItem, type Product } from "@/components/fitting/ProductItem";
 import { Sparkles, ArrowLeft, Share2 } from "lucide-react-native";
 import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
 import { UserPickerModal } from "@/components/ui/UserPickerModal";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { LinearGradient }  from "expo-linear-gradient";
+import Animated, { FadeInUp } from "react-native-reanimated";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 
 export default function FittingRoomScreen() {
