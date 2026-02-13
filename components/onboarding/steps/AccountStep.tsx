@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -214,8 +214,19 @@ export function AccountStep({ formData, onNext, onBack }: StepProps) {
               {/* Terms */}
               <Text className="text-xs text-muted-foreground text-center">
                 By continuing, you agree to our{" "}
-                <Text className="text-secondary">Terms of Service</Text> and{" "}
-                <Text className="text-secondary">Privacy Policy</Text>
+                <Text
+                  className="text-secondary underline"
+                  onPress={() => Linking.openURL("https://www.shopnima.ai/termsAndConditions")}
+                >
+                  Terms of Service
+                </Text>{" "}
+                and{" "}
+                <Text
+                  className="text-secondary underline"
+                  onPress={() => Linking.openURL("https://www.shopnima.ai/privacyPolicy")}
+                >
+                  Privacy Policy
+                </Text>
               </Text>
             </>
           )}

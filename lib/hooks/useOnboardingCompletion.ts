@@ -115,7 +115,6 @@ export function useOnboardingCompletion() {
   const completeOnboarding = useMutation(api.users.mutations.completeOnboarding);
   const markOnboardingComplete = useMutation(api.users.mutations.markOnboardingComplete);
   const claimOnboardingImages = useMutation(api.userImages.mutations.claimOnboardingImages);
-  const startOnboardingWorkflow = useMutation(api.workflows.index.startOnboardingWorkflow);
 
   const processOnboarding = useCallback(async () => {
     // Prevent double processing
@@ -237,14 +236,8 @@ export function useOnboardingCompletion() {
         }
       }
 
-      // Step 3: Start onboarding workflow (generates AI looks)
-      try {
-        const workflowResult = await startOnboardingWorkflow({});
-        console.log('[ONBOARDING_COMPLETION] Onboarding workflow started:', workflowResult);
-      } catch (wfError) {
-        console.error('[ONBOARDING_COMPLETION] Failed to start workflow:', wfError);
-        // Non-fatal: user can still use the app, looks will just be delayed
-      }
+      // NOTE: Workflow will be triggered on the discover page, not here
+      // This allows us to show proper loading UI to the user
 
       await clearStoredOnboardingData();
       console.log('[ONBOARDING_COMPLETION] Onboarding completed successfully');
@@ -256,7 +249,7 @@ export function useOnboardingCompletion() {
       setIsProcessing(false);
       processingRef.current = false;
     }
-  }, [user, onboardingState, getOrCreateUser, completeOnboarding, markOnboardingComplete, claimOnboardingImages, startOnboardingWorkflow]);
+  }, [user, onboardingState, getOrCreateUser, completeOnboarding, markOnboardingComplete, claimOnboardingImages]);
 
   useEffect(() => {
     processOnboarding();
