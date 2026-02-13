@@ -22,7 +22,15 @@ WebBrowser.maybeCompleteAuthSession();
 // ---------- Constants ----------
 
 const WORKOS_CLIENT_ID = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID!;
-const REDIRECT_URI = process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI!;
+
+// Dynamically compute the redirect URI for the current environment:
+// - Expo Go: exp://127.0.0.1:8081/--/callback (local) or exp://u.expo.dev/[project-id]/--/callback (tunnel)
+// - Dev build / Production: shopnima://callback
+const REDIRECT_URI = AuthSession.makeRedirectUri({
+  scheme: 'shopnima',
+  path: 'callback',
+});
+console.log('[AUTH] Computed Redirect URI:', REDIRECT_URI);
 
 const WORKOS_AUTH_URL = 'https://api.workos.com/user_management/authorize';
 const WORKOS_TOKEN_URL = 'https://api.workos.com/user_management/authenticate';

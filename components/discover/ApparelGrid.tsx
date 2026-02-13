@@ -1,4 +1,4 @@
-import { View, FlatList, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { ApparelItemCard, type ApparelItem } from "./ApparelItemCard";
 import { Text } from "@/components/ui/Text";
 import { Shirt } from "lucide-react-native";
@@ -11,7 +11,6 @@ interface ApparelGridProps {
   onItemSelect?: (itemId: Id<"items">) => void;
   isLoading?: boolean;
   isLoadingMore?: boolean;
-  onEndReached?: () => void;
   likedItemIds?: Set<Id<"items">>;
   onToggleLike?: (itemId: Id<"items">) => void;
 }
@@ -23,7 +22,6 @@ export function ApparelGrid({
   onItemSelect,
   isLoading = false,
   isLoadingMore = false,
-  onEndReached,
   likedItemIds = new Set(),
   onToggleLike,
 }: ApparelGridProps) {
@@ -54,37 +52,55 @@ export function ApparelGrid({
     );
   }
 
+  // Build 2-column rows from the flat items array
+  const rows: Array<[ApparelItem, ApparelItem | undefined]> = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push([items[i], items[i + 1]]);
+  }
+
   return (
-    <FlatList
-      data={items}
-      keyExtractor={(item) => item._id}
-      numColumns={2}
-      columnWrapperStyle={{ gap: 16, paddingHorizontal: 16 }}
-      renderItem={({ item, index }) => (
-        <View className="flex-1">
-          <ApparelItemCard
-            item={item}
-            index={index}
-            isSelectionMode={isSelectionMode}
-            isSelected={selectedItemIds.has(item._id)}
-            onSelect={onItemSelect}
-            isLiked={likedItemIds.has(item._id)}
-            onToggleLike={onToggleLike}
-          />
+    <View className="px-4">
+      {rows.map((row, rowIndex) => (
+        <View
+          key={row[0]._id}
+          style={{ flexDirection: "row", gap: 16, marginBottom: 16 }}
+        >
+          <View style={{ flex: 1 }}>
+            <ApparelItemCard
+              item={row[0]}
+              index={rowIndex * 2}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedItemIds.has(row[0]._id)}
+              onSelect={onItemSelect}
+              isLiked={likedItemIds.has(row[0]._id)}
+              onToggleLike={onToggleLike}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            {row[1] ? (
+              <ApparelItemCard
+                item={row[1]}
+                index={rowIndex * 2 + 1}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedItemIds.has(row[1]._id)}
+                onSelect={onItemSelect}
+                isLiked={likedItemIds.has(row[1]._id)}
+                onToggleLike={onToggleLike}
+              />
+            ) : null}
+          </View>
+        </View>
+      ))}
+
+      {/* Loading more indicator */}
+      {isLoadingMore && (
+        <View className="py-4 items-center">
+          <ActivityIndicator size="small" color="#A67C52" />
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-2">
+            Loading more...
+          </Text>
         </View>
       )}
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={
-        isLoadingMore ? (
-          <View className="py-4 items-center">
-            <ActivityIndicator size="small" color="#A67C52" />
-            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-2">
-              Loading more...
-            </Text>
-          </View>
-        ) : null
-      }
-    />
+    </View>
   );
 }

@@ -38,10 +38,10 @@ export function PromptSuggestions({
           <TouchableOpacity
             onPress={() => onSelect(prompt.text)}
             activeOpacity={0.7}
-            className="flex-row items-center gap-3 bg-surface/80 dark:bg-surface-dark/80 border border-border/30 dark:border-border-dark/30 rounded-2xl px-4 py-3.5"
+            className="flex-row items-center gap-2.5 bg-surface/80 dark:bg-surface-dark/80 border border-border/30 dark:border-border-dark/30 rounded-2xl px-3 py-2.5"
           >
-            <Text className="text-xl">{prompt.icon}</Text>
-            <Text className="flex-1 text-base text-foreground dark:text-foreground-dark font-sans">
+            <Text className="text-base">{prompt.icon}</Text>
+            <Text className="flex-1 text-sm text-foreground dark:text-foreground-dark font-sans">
               {prompt.text}
             </Text>
           </TouchableOpacity>

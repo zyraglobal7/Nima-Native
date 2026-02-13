@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Settings, Image as ImageIcon, Shirt, User } from "lucide-react-native";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -12,19 +13,26 @@ import { SettingsTab } from "@/components/profile/SettingsTab";
 import { PhotosTab } from "@/components/profile/PhotosTab";
 import { StyleFitTab } from "@/components/profile/StyleFitTab";
 import { AccountTab } from "@/components/profile/AccountTab";
-import { useAuthFromWorkOS } from "@/lib/auth";
 import { Redirect } from "expo-router";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 type Tab = "settings" | "photos" | "style" | "account";
 
 export default function ProfileScreen() {
-  const { isLoading, isAuthenticated } = useAuthFromWorkOS();
+  const { isLoading, isAuthenticated } = useConvexAuth();
   const [activeTab, setActiveTab] = useState<Tab>("settings");
   const currentUser = useQuery(api.users.queries.getCurrentUser);
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
+        <ActivityIndicator size="large" color="#A67C52" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/sign-in" />;
   }
 

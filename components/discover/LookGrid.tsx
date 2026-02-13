@@ -56,16 +56,19 @@ export function LookGrid({
   const isCreatorMode = !!looksWithCreators;
   const data = isCreatorMode ? looksWithCreators! : (looks ?? []);
 
+  // Explicit column width: screen width minus horizontal padding (16*2) minus gap (16), divided by 2
+  const columnWidth = (width - 32 - 16) / 2;
+
   // Loading skeleton
   if (isLoading) {
     return (
       <View className="px-4">
         <View style={{ flexDirection: "row", gap: 16 }}>
-          <View style={{ flex: 1 }}>
+          <View style={{ width: columnWidth }}>
             <LookSkeleton />
             <LookSkeleton />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ width: columnWidth }}>
             <LookSkeleton />
             <LookSkeleton />
           </View>
@@ -104,7 +107,7 @@ export function LookGrid({
   return (
     <View className="px-4" style={{ flexDirection: "row", gap: 16 }}>
       {/* Left column */}
-      <View style={{ flex: 1 }}>
+      <View style={{ width: columnWidth }}>
         {leftColumn.map((item, i) =>
           isCreatorMode ? (
             <LookCardWithCreator
@@ -122,7 +125,7 @@ export function LookGrid({
         )}
       </View>
       {/* Right column */}
-      <View style={{ flex: 1 }}>
+      <View style={{ width: columnWidth }}>
         {rightColumn.map((item, i) =>
           isCreatorMode ? (
             <LookCardWithCreator

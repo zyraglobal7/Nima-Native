@@ -1,30 +1,51 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { useMutation } from "convex/react";
+import { useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "expo-router";
 
-/**
- * Configure notification handler — show notifications even when the app is foregrounded
- */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Detect Expo Go where push notifications native module is unavailable (SDK 53+)
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+let Notifications: typeof import("expo-notifications") | null = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require("expo-notifications");
+  } catch (error) {
+    console.warn("[PUSH] expo-notifications not available in this environment");
+  }
+
+  // Configure notification handler — show notifications even when the app is foregrounded
+  if (Notifications) {
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    } catch (error) {
+      console.warn("[PUSH] Failed to set notification handler:", error);
+    }
+  }
+} else {
+  console.log(
+    "[PUSH] Running in Expo Go — push notifications are not available. Use a development build for full functionality.",
+  );
+}
 
 /**
  * Set up Android notification channels
  */
 async function setupNotificationChannels() {
-  if (Platform.OS === "android") {
+  if (!Notifications || Platform.OS !== "android") return;
+
+  try {
     await Notifications.setNotificationChannelAsync("default", {
       name: "General",
       importance: Notifications.AndroidImportance.HIGH,
@@ -53,6 +74,8 @@ async function setupNotificationChannels() {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#5C2A33",
     });
+  } catch (error) {
+    console.warn("[PUSH] Failed to set up notification channels:", error);
   }
 }
 
@@ -60,6 +83,11 @@ async function setupNotificationChannels() {
  * Register for push notifications and return the Expo push token
  */
 async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (!Notifications) {
+    console.log("[PUSH] Notifications module not available");
+    return null;
+  }
+
   // Push notifications don't work on simulators
   if (!Device.isDevice) {
     console.log("[PUSH] Must use physical device for push notifications");
@@ -112,26 +140,32 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
  * Hook to manage push notification registration and handle incoming notifications
  *
  * - Registers for push notifications on mount
- * - Saves the token to Convex for server-side sending
+ * - Saves the token to Convex for server-side sending (only when authenticated)
  * - Listens for received and tapped notifications
  */
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] =
-    useState<Notifications.Notification | null>(null);
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+    useState<import("expo-notifications").Notification | null>(null);
+  const notificationListener =
+    useRef<import("expo-notifications").EventSubscription>();
+  const responseListener =
+    useRef<import("expo-notifications").EventSubscription>();
   const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
 
   const savePushToken = useMutation(api.notifications.mutations.savePushToken);
 
+  // Register for push notifications and save token when authenticated
   useEffect(() => {
-    // Register and save token
+    if (!Notifications) return;
+    if (!isAuthenticated) return;
+
     registerForPushNotificationsAsync().then(async (token) => {
       if (token) {
         setExpoPushToken(token);
 
-        // Save to Convex
+        // Save to Convex — only runs when authenticated
         try {
           const platform =
             Platform.OS === "ios"
@@ -145,11 +179,16 @@ export function usePushNotifications() {
         }
       }
     });
+  }, [isAuthenticated, savePushToken]);
+
+  // Set up notification listeners (regardless of auth state)
+  useEffect(() => {
+    if (!Notifications) return;
 
     // Listen for notifications received while app is foregrounded
     notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        setNotification(notification);
+      Notifications.addNotificationReceivedListener((notif) => {
+        setNotification(notif);
       });
 
     // Listen for user tapping on a notification
@@ -160,19 +199,14 @@ export function usePushNotifications() {
 
         // Handle navigation based on notification type
         if (data?.type === "low_credits" || data?.type === "credits_purchased") {
-          // Navigate to profile where credits are visible
           router.push("/(tabs)/profile");
         } else if (data?.type === "message_received") {
-          // Navigate to messages
           router.push("/messages");
         } else if (data?.type === "look_ready" && data?.lookId) {
-          // Navigate to the specific look
           router.push(`/look/${data.lookId}`);
         } else if (data?.type === "tryon_ready") {
-          // Navigate to discover page (try-ons are visible there)
           router.push("/(tabs)/discover");
         } else if (data?.type === "onboarding_looks_ready") {
-          // Navigate to discover page to see first looks
           router.push("/(tabs)/discover");
         }
       });
@@ -185,11 +219,10 @@ export function usePushNotifications() {
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [router]);
 
   return {
     expoPushToken,
     notification,
   };
 }
-
