@@ -1,5 +1,11 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from "react-native";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -297,6 +303,24 @@ export default function DiscoverScreen() {
     }
   }, [rawItemsData, isLoadingMore]);
 
+  // Detect scroll near bottom for infinite scroll (replaces FlatList onEndReached)
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (activeFilter !== "apparel") return;
+
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+
+      // Trigger load more when within 300px of the bottom
+      if (distanceFromBottom < 300) {
+        handleLoadMore();
+      }
+    },
+    [activeFilter, handleLoadMore],
+  );
+
   // Get selected items array for CreateLookSheet
   const selectedItemsArray = Array.from(selectedItems.values());
 
@@ -329,7 +353,8 @@ export default function DiscoverScreen() {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
-        nestedScrollEnabled
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
       >
         {/* Header */}
         <View className="px-4 pt-6 pb-4">
@@ -419,7 +444,6 @@ export default function DiscoverScreen() {
                 accumulatedItems.length === 0 && rawItemsData === undefined
               }
               isLoadingMore={isLoadingMore}
-              onEndReached={handleLoadMore}
               likedItemIds={likedItemIdsSet}
               onToggleLike={handleToggleLike}
             />

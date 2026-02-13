@@ -11,7 +11,7 @@ import {
   LogOut,
   ShoppingBag,
 } from "lucide-react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { signOut } from "@/lib/auth";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -68,39 +68,41 @@ export function SettingsTab() {
             Your Activity
           </Text>
           <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark divide-y divide-border dark:divide-border-dark">
-            <Link href="/profile/discarded-looks" asChild>
-              <TouchableOpacity className="flex-row items-center justify-between p-4">
-                <View className="flex-row items-center space-x-3 flex-1">
-                  <Trash2 size={24} className="text-foreground dark:text-foreground-dark" />
-                  <View>
-                    <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
-                      Discarded Looks
-                    </Text>
-                    <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
-                      View and restore discarded looks
-                    </Text>
-                  </View>
+            <TouchableOpacity
+              onPress={() => router.push("/profile/discarded-looks")}
+              className="flex-row items-center justify-between p-4"
+            >
+              <View className="flex-row items-center space-x-3 flex-1">
+                <Trash2 size={24} className="text-foreground dark:text-foreground-dark" />
+                <View>
+                  <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
+                    Discarded Looks
+                  </Text>
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
+                    View and restore discarded looks
+                  </Text>
                 </View>
-                <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
-              </TouchableOpacity>
-            </Link>
+              </View>
+              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+            </TouchableOpacity>
 
-            <Link href="/orders" asChild>
-              <TouchableOpacity className="flex-row items-center justify-between p-4">
-                <View className="flex-row items-center space-x-3 flex-1">
-                  <ShoppingBag size={24} className="text-foreground dark:text-foreground-dark" />
-                  <View>
-                    <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
-                      My Orders
-                    </Text>
-                    <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
-                      Track and manage your purchases
-                    </Text>
-                  </View>
+            <TouchableOpacity
+              onPress={() => router.push("/orders")}
+              className="flex-row items-center justify-between p-4"
+            >
+              <View className="flex-row items-center space-x-3 flex-1">
+                <ShoppingBag size={24} className="text-foreground dark:text-foreground-dark" />
+                <View>
+                  <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
+                    My Orders
+                  </Text>
+                  <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground font-sans">
+                    Track and manage your purchases
+                  </Text>
                 </View>
-                <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
-              </TouchableOpacity>
-            </Link>
+              </View>
+              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+            </TouchableOpacity>
           </View>
         </View>
 

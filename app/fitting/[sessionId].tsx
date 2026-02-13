@@ -4,7 +4,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  Share,
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -18,6 +17,8 @@ import {
 } from "@/components/fitting/LookCarousel";
 import { ProductItem, type Product } from "@/components/fitting/ProductItem";
 import { Sparkles, ArrowLeft, Share2 } from "lucide-react-native";
+import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
+import { UserPickerModal } from "@/components/ui/UserPickerModal";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useTheme } from "@/lib/contexts/ThemeContext";
@@ -32,6 +33,8 @@ export default function FittingRoomScreen() {
   const [savedLooks, setSavedLooks] = useState<Set<string>>(new Set());
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
   const [savedProducts, setSavedProducts] = useState<Set<string>>(new Set());
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showUserPicker, setShowUserPicker] = useState(false);
 
   // Parse look IDs from sessionId (comma-separated)
   const lookIds = useMemo(() => {
@@ -162,18 +165,12 @@ export default function FittingRoomScreen() {
     });
   }, []);
 
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        message: `Check out this look I found on Nima! 🔥`,
-        url: currentLookData
-          ? `https://nimaai.com/look/${currentLookData.look.publicId}`
-          : undefined,
-      });
-    } catch {
-      // User cancelled
-    }
-  }, [currentLookData]);
+  const shareUrl = currentLookData
+    ? `https://www.shopnima.ai/look/${currentLookData.look.publicId}`
+    : "";
+  const shareTitle = currentLook?.occasion
+    ? `${currentLook.occasion} Look`
+    : "This Look";
 
   // Loading skeleton
   if (isLoading) {
@@ -239,6 +236,7 @@ export default function FittingRoomScreen() {
         style={{
           paddingTop: Platform.OS === "ios" ? 56 : 12,
           paddingBottom: 12,
+          marginTop:25
         }}
       >
         <TouchableOpacity
@@ -259,7 +257,7 @@ export default function FittingRoomScreen() {
         </View>
 
         <TouchableOpacity
-          onPress={handleShare}
+          onPress={() => setShowShareModal(true)}
           activeOpacity={0.7}
           className="w-9 h-9 rounded-full items-center justify-center"
         >
@@ -385,6 +383,25 @@ export default function FittingRoomScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Share Options Modal */}
+      <ShareOptionsModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title={shareTitle}
+        lookId={lookIds[currentLookIndex]}
+        onShareViaDM={() => setShowUserPicker(true)}
+      />
+
+      {/* User Picker for DM */}
+      {lookIds[currentLookIndex] && (
+        <UserPickerModal
+          visible={showUserPicker}
+          onClose={() => setShowUserPicker(false)}
+          lookId={lookIds[currentLookIndex]}
+        />
+      )}
     </View>
   );
 }

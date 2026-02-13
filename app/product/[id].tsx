@@ -37,6 +37,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
 import { CreditsModal } from "@/components/credits/CreditsModal";
+import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -65,6 +66,7 @@ export default function ProductDetailScreen() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -186,14 +188,8 @@ export default function ProductDetailScreen() {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await Clipboard.setStringAsync(`https://www.shopnima.ai/product/${id}`);
-      Alert.alert("Copied", "Link copied to clipboard!");
-    } catch {
-      // Ignore
-    }
-  };
+  const productUrl = `https://www.shopnima.ai/product/${id}`;
+  const shareTitle = item?.name ?? "this item";
 
   const handleAddToCart = async () => {
     if (!item || addedToCart) return;
@@ -291,16 +287,16 @@ export default function ProductDetailScreen() {
         {/* Floating header */}
         <View
           style={{ paddingTop: insets.top + 8 }}
-          className="absolute z-10 w-full flex-row justify-between px-4"
+          className="absolute z-10 w-full flex-row justify-end px-4"
         >
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full bg-background/80 dark:bg-background-dark/80 border border-border/50 dark:border-border-dark/50 items-center justify-center"
           >
             <ChevronLeft size={22} color={isDark ? "#E8E2DA" : "#2D2926"} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
-            onPress={handleShare}
+            onPress={() => setShowShareModal(true)}
             className="w-10 h-10 rounded-full bg-background/80 dark:bg-background-dark/80 border border-border/50 dark:border-border-dark/50 items-center justify-center"
           >
             <Share2 size={20} color={isDark ? "#E8E2DA" : "#2D2926"} />
@@ -743,6 +739,14 @@ export default function ProductDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Share Options Modal */}
+      <ShareOptionsModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={productUrl}
+        title={shareTitle}
+      />
 
       {/* Credits Modal */}
       <CreditsModal

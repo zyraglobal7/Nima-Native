@@ -40,6 +40,8 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
+import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
+import { UserPickerModal } from "@/components/ui/UserPickerModal";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -63,6 +65,8 @@ export default function LookDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showUserPicker, setShowUserPicker] = useState(false);
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["60%", "80%"], []);
@@ -155,15 +159,10 @@ export default function LookDetailScreen() {
     bottomSheetRef.current?.present();
   };
 
-  const handleShare = async () => {
-    const publicId = lookData?.look.publicId || id;
-    try {
-      await Clipboard.setStringAsync(`https://www.shopnima.ai/look/${publicId}`);
-      Alert.alert("Copied", "Link copied to clipboard!");
-    } catch {
-      // Ignore
-    }
-  };
+  const shareUrl = `https://www.shopnima.ai/look/${lookData?.look.publicId || id}`;
+  const shareTitle = lookData?.look.occasion
+    ? `${lookData.look.occasion} Look`
+    : lookData?.look.name || "This Look";
 
   const handleSaveToLookbook = async (lookbookId: Id<"lookbooks">) => {
     if (!lookInternalId || isSaving) return;
@@ -320,7 +319,7 @@ export default function LookDetailScreen() {
           </TouchableOpacity>
           <View className="flex-row gap-2">
             <TouchableOpacity
-              onPress={handleShare}
+              onPress={() => setShowShareModal(true)}
               className="w-10 h-10 rounded-full bg-background/80 dark:bg-background-dark/80 border border-border/50 dark:border-border-dark/50 items-center justify-center"
             >
               <Share2 size={20} color={isDark ? "#E8E2DA" : "#2D2926"} />
@@ -347,12 +346,12 @@ export default function LookDetailScreen() {
         {/* Hero Image */}
         <View
           style={{ width: SCREEN_WIDTH, aspectRatio: 3 / 4 }}
-          className="bg-surface-alt dark:bg-surface-alt-dark"
+          className="bg-surface-alt dark:bg-surface-alt-dark "
         >
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: "100%"  }}
               contentFit="cover"
               transition={300}
             />
@@ -421,7 +420,7 @@ export default function LookDetailScreen() {
           className="px-4 pt-5 pb-6"
         >
           {/* Action Buttons */}
-          <View className="flex-row justify-center gap-8 mb-6">
+          <View className="flex-row justify-center gap-8 mb-6 mt-10">
             {/* Dislike */}
             <TouchableOpacity
               onPress={handleDislike}
@@ -796,6 +795,25 @@ export default function LookDetailScreen() {
           </View>
         </BottomSheetView>
       </BottomSheetModal>
+
+      {/* Share Options Modal */}
+      <ShareOptionsModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title={shareTitle}
+        lookId={lookInternalId}
+        onShareViaDM={() => setShowUserPicker(true)}
+      />
+
+      {/* User Picker for DM */}
+      {lookInternalId && (
+        <UserPickerModal
+          visible={showUserPicker}
+          onClose={() => setShowUserPicker(false)}
+          lookId={lookInternalId}
+        />
+      )}
     </View>
   );
 }

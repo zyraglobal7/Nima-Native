@@ -9,7 +9,7 @@
     "scheme": "shopnima",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/nima-mascott.png",
       "resizeMode": "contain",
       "backgroundColor": "#FAF8F5"
     },
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/nima-mascott.png",
         "backgroundColor": "#FAF8F5"
       },
       "edgeToEdgeEnabled": true,

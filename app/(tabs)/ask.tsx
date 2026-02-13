@@ -27,9 +27,10 @@ import { FittingRoomCard } from "@/components/ask/FittingRoomCard";
 import { SearchingCard } from "@/components/ask/SearchingCard";
 import { ExploreCard } from "@/components/ask/ExploreCard";
 import { Text } from "@/components/ui/Text";
-import { ArrowLeft, Sparkles } from "lucide-react-native";
+import { ArrowLeft, Sparkles, Clock } from "lucide-react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { CreditsModal } from "@/components/credits/CreditsModal";
+import { ChatHistoryDrawer } from "@/components/ask/ChatHistoryDrawer";
 
 type ViewState = "welcome" | "chatting";
 type ChatState = "idle" | "typing" | "curating" | "generating" | "no_matches";
@@ -58,11 +59,10 @@ export default function AskScreen() {
   const [createdLookIds, setCreatedLookIds] = useState<Id<"looks">[]>([]);
   const [lookScenario, setLookScenario] = useState<"fresh" | "remix">("fresh");
   const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(false);
 
   // Get current user
   const currentUser = useQuery(api.users.queries.getCurrentUser);
-  const userCredits = useQuery(api.credits.queries.getUserCredits);
-  const remainingSearches = userCredits?.total ?? 0;
 
   // Database messages (reactive)
   const dbMessages = useQuery(
@@ -93,6 +93,7 @@ export default function AskScreen() {
     api.chat.mutations.scheduleChatLookImageGeneration,
   );
   const sendChatMessage = useAction(api.chat.actions.sendChatMessage);
+  const sendUserMessage = useMutation(api.messages.mutations.sendMessage);
 
   // Build user data for AI context
   const userData = useMemo(() => {
@@ -235,7 +236,7 @@ export default function AskScreen() {
       }, 100);
 
       try {
-        // Start conversation if needed
+        // Start conversation if needed, or save user message to existing thread
         let currentThreadId = threadId;
         if (!currentThreadId) {
           const result = await startConversation({
@@ -244,6 +245,12 @@ export default function AskScreen() {
           });
           currentThreadId = result.threadId;
           setThreadId(currentThreadId);
+        } else {
+          // Thread already exists — persist the user message to DB
+          await sendUserMessage({
+            threadId: currentThreadId,
+            content,
+          });
         }
 
         // Send to AI
@@ -335,6 +342,7 @@ export default function AskScreen() {
       conversationHistory,
       userData,
       startConversation,
+      sendUserMessage,
       sendChatMessage,
       saveAssistantMessage,
       handleMatchItems,
@@ -363,6 +371,32 @@ export default function AskScreen() {
     setPendingMessages([]);
     setConversationHistory([]);
     setCreatedLookIds([]);
+  }, []);
+
+  const handleSelectThread = useCallback((selectedThreadId: Id<"threads">) => {
+    setThreadId(selectedThreadId);
+    setViewState("chatting");
+    setChatState("idle");
+    setPendingMessages([]);
+    setConversationHistory([]);
+    setCreatedLookIds([]);
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    setViewState("welcome");
+    setChatState("idle");
+    setThreadId(null);
+    setPendingMessages([]);
+    setConversationHistory([]);
+    setCreatedLookIds([]);
+  }, []);
+
+  // Register global callback so the Header can open chat history
+  useEffect(() => {
+    (globalThis as any).__openChatHistory = () => setShowChatHistory(true);
+    return () => {
+      delete (globalThis as any).__openChatHistory;
+    };
   }, []);
 
   // Scroll to bottom when messages change
@@ -445,21 +479,9 @@ export default function AskScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 140 : 0}
         >
           <View className="flex-1 justify-center items-center px-6">
-            {/* Free searches badge */}
-            <Animated.View entering={FadeIn.duration(400)}>
-              <View className="mb-6 px-4 py-1.5 rounded-full bg-surface/80 dark:bg-surface-dark/80 border border-border/40 dark:border-border-dark/40">
-                <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
-                  <Text className="text-secondary dark:text-secondary-dark font-medium">
-                    {remainingSearches}
-                  </Text>{" "}
-                  free searches remaining today
-                </Text>
-              </View>
-            </Animated.View>
-
             <WelcomeHero className="mb-10" />
             <PromptSuggestions onSelect={handlePromptSelect} />
           </View>
@@ -470,6 +492,15 @@ export default function AskScreen() {
             placeholder="Describe what you're looking for..."
           />
         </KeyboardAvoidingView>
+
+        {/* Chat History Drawer */}
+        <ChatHistoryDrawer
+          visible={showChatHistory}
+          onClose={() => setShowChatHistory(false)}
+          onSelectThread={handleSelectThread}
+          onNewChat={handleNewChat}
+          currentThreadId={threadId}
+        />
       </View>
     );
   }
@@ -536,7 +567,7 @@ export default function AskScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 140 : 0}
       >
         {/* Chat header */}
         <View className="flex-row items-center px-4 py-3 border-b border-border/20 dark:border-border-dark/20 bg-background/95 dark:bg-background-dark/95">
@@ -561,15 +592,13 @@ export default function AskScreen() {
             </Text>
           </View>
 
-          {/* Free searches badge */}
-          <View className="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-border/30 dark:border-border-dark/30">
-            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
-              <Text className="text-secondary dark:text-secondary-dark font-medium">
-                {remainingSearches}
-              </Text>{" "}
-              left
-            </Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => setShowChatHistory(true)}
+            activeOpacity={0.7}
+            className="w-9 h-9 rounded-full items-center justify-center"
+          >
+            <Clock size={20} color={isDark ? "#C4B8A8" : "#6B635B"} />
+          </TouchableOpacity>
         </View>
 
         {/* Messages */}
@@ -584,6 +613,8 @@ export default function AskScreen() {
             flatListRef.current?.scrollToEnd({ animated: true })
           }
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
         />
 
         {/* Input */}
@@ -599,6 +630,15 @@ export default function AskScreen() {
       <CreditsModal
         visible={showCreditsModal}
         onClose={() => setShowCreditsModal(false)}
+      />
+
+      {/* Chat History Drawer */}
+      <ChatHistoryDrawer
+        visible={showChatHistory}
+        onClose={() => setShowChatHistory(false)}
+        onSelectThread={handleSelectThread}
+        onNewChat={handleNewChat}
+        currentThreadId={threadId}
       />
     </View>
   );

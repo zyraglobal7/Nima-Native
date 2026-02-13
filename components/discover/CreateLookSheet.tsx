@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   View,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -17,6 +16,7 @@ import { Text } from "@/components/ui/Text";
 import BottomSheet, {
   BottomSheetView,
   BottomSheetBackdrop,
+  BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import {
   X,
@@ -318,19 +318,28 @@ export function CreateLookSheet({
         </View>
 
         {/* Content */}
-        <ScrollView className="flex-1 px-6 py-4">
-          {status === "completed" && generatedImageUrl ? (
+        <BottomSheetScrollView style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 16 }}>
+          {status === "completed" ? (
             <View className="gap-6">
               {/* Generated look image */}
               <View
                 className="rounded-2xl overflow-hidden border border-border dark:border-border-dark"
                 style={{ aspectRatio: 3 / 4 }}
               >
-                <Image
-                  source={{ uri: generatedImageUrl }}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="cover"
-                />
+                {generatedImageUrl ? (
+                  <Image
+                    source={{ uri: generatedImageUrl }}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View className="flex-1 items-center justify-center bg-surface dark:bg-surface-dark">
+                    <ActivityIndicator size="large" color="#A67C52" />
+                    <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mt-3">
+                      Loading your look...
+                    </Text>
+                  </View>
+                )}
                 {/* Success badge */}
                 <View
                   className={`absolute top-3 right-3 px-3 py-1.5 ${
@@ -542,7 +551,7 @@ export function CreateLookSheet({
               )}
             </View>
           )}
-        </ScrollView>
+        </BottomSheetScrollView>
 
         {/* Footer */}
         <View className="px-6 py-4 border-t border-border dark:border-border-dark bg-background dark:bg-background-dark">

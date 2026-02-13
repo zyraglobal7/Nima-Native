@@ -17,6 +17,9 @@ function AuthenticatedContent() {
     if (completed && !needsOnboarding && !isProcessing) {
       // Redirect to main feed if onboarding is complete
       router.replace("/(tabs)/discover");
+    } else if (needsOnboarding && !isProcessing) {
+      // Redirect to onboarding screen
+      router.replace("/onboarding");
     }
   }, [completed, needsOnboarding, isProcessing, router]);
 
@@ -33,11 +36,6 @@ function AuthenticatedContent() {
 
   // If user needs onboarding
   if (needsOnboarding) {
-    // Navigate to onboarding screen
-    // We wrapping in useEffect to avoid update loop during render
-    useEffect(() => {
-      router.replace("/onboarding");
-    }, []);
     return <Loader message="Redirecting to onboarding..." />;
   }
 
