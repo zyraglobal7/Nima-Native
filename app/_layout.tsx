@@ -48,7 +48,12 @@ function LayoutContent() {
   const showHeader =
     pathname !== "/" &&
     pathname !== "/onboarding" &&
+    !pathname.includes("/lookbook/") &&
+    !pathname.includes("/look/") &&
+    pathname !== "/cart" &&
+    !pathname.startsWith("/messages") &&
     pathname !== "/callback" &&
+    !pathname.includes("/fitting/") &&
     !pathname?.startsWith("/(auth)");
 
   const backgroundColor = isDark ? "#1A1614" : "#FAF8F5";

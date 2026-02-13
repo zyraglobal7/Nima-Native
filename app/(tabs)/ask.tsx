@@ -93,6 +93,7 @@ export default function AskScreen() {
     api.chat.mutations.scheduleChatLookImageGeneration,
   );
   const sendChatMessage = useAction(api.chat.actions.sendChatMessage);
+  const sendUserMessage = useMutation(api.messages.mutations.sendMessage);
 
   // Build user data for AI context
   const userData = useMemo(() => {
@@ -235,7 +236,7 @@ export default function AskScreen() {
       }, 100);
 
       try {
-        // Start conversation if needed
+        // Start conversation if needed, or save user message to existing thread
         let currentThreadId = threadId;
         if (!currentThreadId) {
           const result = await startConversation({
@@ -244,6 +245,12 @@ export default function AskScreen() {
           });
           currentThreadId = result.threadId;
           setThreadId(currentThreadId);
+        } else {
+          // Thread already exists — persist the user message to DB
+          await sendUserMessage({
+            threadId: currentThreadId,
+            content,
+          });
         }
 
         // Send to AI
@@ -335,6 +342,7 @@ export default function AskScreen() {
       conversationHistory,
       userData,
       startConversation,
+      sendUserMessage,
       sendChatMessage,
       saveAssistantMessage,
       handleMatchItems,
@@ -484,6 +492,15 @@ export default function AskScreen() {
             placeholder="Describe what you're looking for..."
           />
         </KeyboardAvoidingView>
+
+        {/* Chat History Drawer */}
+        <ChatHistoryDrawer
+          visible={showChatHistory}
+          onClose={() => setShowChatHistory(false)}
+          onSelectThread={handleSelectThread}
+          onNewChat={handleNewChat}
+          currentThreadId={threadId}
+        />
       </View>
     );
   }

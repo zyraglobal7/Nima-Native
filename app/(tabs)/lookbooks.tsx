@@ -17,7 +17,7 @@ import { Text } from "@/components/ui/Text";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { LookbookCard } from "@/components/lookbooks/LookbookCard";
 import { CreateLookbookModal } from "@/components/lookbooks/CreateLookbookModal";
-import { Sparkles, Heart, BookOpen, Plus } from "lucide-react-native";
+import { Sparkles, Heart, BookOpen, Plus, AlertCircle } from "lucide-react-native";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPrice } from "@/lib/utils/format";
@@ -142,6 +142,23 @@ export default function LookbooksScreen() {
                       <ActivityIndicator
                         size="small"
                         color={isDark ? "#C9A07A" : "#A67C52"}
+                      />
+                    ) : item.lookImage?.status === "failed" ? (
+                      <View className="items-center gap-1.5">
+                        <AlertCircle
+                          size={20}
+                          color={isDark ? "#D4807A" : "#B85C5C"}
+                        />
+                        <Text className="text-xs text-destructive dark:text-destructive-dark font-medium">
+                          Failed
+                        </Text>
+                      </View>
+                    ) : item.items?.[0]?.primaryImageUrl ? (
+                      <Image
+                        source={{ uri: item.items[0].primaryImageUrl }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="cover"
+                        transition={200}
                       />
                     ) : (
                       <Sparkles

@@ -6,13 +6,14 @@ import {
   ArrowLeft,
   ShoppingBag,
   MessageSquare,
-  Activity,
+  Heart,
   Clock,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/Text";
-import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export function Header() {
   const pathname = usePathname();
@@ -32,6 +33,11 @@ export function Header() {
 
   const isAskPage = pathname === "/ask";
   const iconColor = isDark ? "#FAF8F5" : "#1A1614";
+
+  const unreadCount = useQuery(
+    api.lookInteractions.queries.getUnreadActivityCount,
+  );
+  const hasUnread = (unreadCount ?? 0) > 0;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -91,13 +97,28 @@ export function Header() {
             </TouchableOpacity>
           ) : (
             <>
-              <ThemeToggle />
-
               <TouchableOpacity
                 className="p-2 -mr-2 rounded-full active:bg-muted/10"
                 onPress={() => router.push("/activity")}
               >
-                <Activity size={24} color={iconColor} />
+                <View>
+                  <Heart size={24} color={iconColor} />
+                  {hasUnread && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -2,
+                        right: -2,
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: "#EF4444",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#1A1614" : "#FAF8F5",
+                      }}
+                    />
+                  )}
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity

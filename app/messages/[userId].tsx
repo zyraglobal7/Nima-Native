@@ -161,7 +161,7 @@ export default function MessageDetailScreen() {
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
       {/* Header */}
-      <View
+      {/* <View
         style={{ paddingTop: insets.top }}
         className="bg-background dark:bg-background-dark border-b border-border/30 dark:border-border-dark/30"
       >
@@ -177,7 +177,7 @@ export default function MessageDetailScreen() {
             Conversation
           </Text>
         </View>
-      </View>
+      </View> */}
 
       {/* Content */}
       {isLoading ? (

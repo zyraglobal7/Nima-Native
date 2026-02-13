@@ -30,6 +30,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import * as Clipboard from "expo-clipboard";
+import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
 
 export default function LookbookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,6 +41,7 @@ export default function LookbookDetailScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const lookbookId = id as Id<"lookbooks">;
 
@@ -56,20 +58,10 @@ export default function LookbookDetailScreen() {
   const deleteLookbook = useMutation(api.lookbooks.mutations.deleteLookbook);
   const updateLookbook = useMutation(api.lookbooks.mutations.updateLookbook);
 
-  const handleShare = async () => {
-    if (!lookbook?.shareToken) {
-      Alert.alert("Not shared", "This lookbook is private.");
-      return;
-    }
-    try {
-      await Clipboard.setStringAsync(
-        `https://www.shopnima.ai/lookbook/shared/${lookbook.shareToken}`,
-      );
-      Alert.alert("Copied", "Share link copied to clipboard!");
-    } catch {
-      // ignore
-    }
-  };
+  const shareUrl = lookbook?.shareToken
+    ? `https://www.shopnima.ai/lookbook/shared/${lookbook.shareToken}`
+    : `https://www.shopnima.ai/lookbook/${id}`;
+  const shareTitle = lookbook?.name || "This Lookbook";
 
   const handleDelete = () => {
     Alert.alert(
@@ -167,7 +159,7 @@ export default function LookbookDetailScreen() {
               <Edit3 size={18} color={isDark ? "#E8E2DA" : "#2D2926"} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={handleShare}
+              onPress={() => setShowShareModal(true)}
               className="w-10 h-10 rounded-full bg-surface dark:bg-surface-dark items-center justify-center"
             >
               <Share2 size={18} color={isDark ? "#E8E2DA" : "#2D2926"} />
@@ -253,6 +245,14 @@ export default function LookbookDetailScreen() {
           <LookbookItemGrid items={lookbookItems} />
         )}
       </ScrollView>
+
+      {/* Share Options Modal */}
+      <ShareOptionsModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title={shareTitle}
+      />
     </View>
   );
 }

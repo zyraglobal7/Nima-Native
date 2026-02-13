@@ -57,9 +57,13 @@ async function createCodeChallenge(verifier: string): Promise<string> {
   return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// ---------- Token Refresh ----------
+// ---------- Token Refresh (with mutex to prevent concurrent calls) ----------
 
-async function refreshAccessToken(refreshToken: string): Promise<{
+// WorkOS invalidates refresh tokens after a single use, so we must ensure only
+// one refresh request is in-flight at a time. Subsequent callers reuse the result.
+let refreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
+
+async function doRefreshAccessToken(refreshToken: string): Promise<{
   accessToken: string;
   refreshToken: string;
 } | null> {
@@ -79,6 +83,24 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   } catch (error) {
     console.error('[AUTH] Token refresh error:', error);
     return null;
+  }
+}
+
+async function refreshAccessToken(refreshToken: string): Promise<{
+  accessToken: string;
+  refreshToken: string;
+} | null> {
+  // If a refresh is already in-flight, reuse its result
+  if (refreshPromise) {
+    console.log('[AUTH] Reusing in-flight token refresh');
+    return refreshPromise;
+  }
+
+  refreshPromise = doRefreshAccessToken(refreshToken);
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
   }
 }
 

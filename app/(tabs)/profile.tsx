@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -16,15 +16,20 @@ import { AccountTab } from "@/components/profile/AccountTab";
 import { Redirect } from "expo-router";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { NavigationContext } from "@react-navigation/core";
 
 type Tab = "settings" | "photos" | "style" | "account";
 
 export default function ProfileScreen() {
+  // Guard against rendering before the navigation context is available.
+  // This prevents the transient "Couldn't find a navigation context"
+  // error that can happen during hot reload or initial mount.
+  const navContext = useContext(NavigationContext);
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [activeTab, setActiveTab] = useState<Tab>("settings");
   const currentUser = useQuery(api.users.queries.getCurrentUser);
 
-  if (isLoading) {
+  if (!navContext || isLoading || (isAuthenticated && currentUser === undefined)) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
         <ActivityIndicator size="large" color="#A67C52" />
