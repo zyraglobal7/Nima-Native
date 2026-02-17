@@ -12,33 +12,44 @@ import {
   ShoppingBag,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { signOut } from "@/lib/auth";
-import { useQuery } from "convex/react";
+import { callLogout } from "@/lib/auth";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
+
+const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 export function SettingsTab() {
   const { isDark, setTheme } = useTheme();
   const router = useRouter();
   const currentUser = useQuery(api.users.queries.getCurrentUser);
+  const removePushToken = useMutation(api.notifications.mutations.removePushToken);
 
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   const handleSignOut = async () => {
-    await signOut();
+    // Remove push token from Convex so user stops receiving notifications
+    if (!isExpoGo) {
+      try {
+        const Notifications = require("expo-notifications");
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId,
+        });
+        await removePushToken({ token: tokenData.data });
+      } catch {
+        // Non-critical — proceed with logout even if token removal fails
+      }
+    }
 
-    // On web, we need a page reload to clear Convex state
-    // On native, router.replace works fine after token is cleared
+    await callLogout();
+
     if (Platform.OS === "web") {
-      // Force a full page reload on web to clear all state
       if (typeof window !== "undefined") {
         window.location.href = "/";
       }
     } else {
-      // On native, small delay to ensure Convex detects the token change
-      setTimeout(() => {
-        router.replace("/");
-      }, 100);
+      router.replace("/");
     }
   };
 

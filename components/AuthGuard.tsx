@@ -17,7 +17,7 @@ interface AuthGuardProps {
  */
 export function AuthGuard({
   children,
-  redirectTo = "/(auth)/sign-in",
+  redirectTo = "/",
 }: AuthGuardProps) {
   const { isLoading, isAuthenticated } = useConvexAuth();
 

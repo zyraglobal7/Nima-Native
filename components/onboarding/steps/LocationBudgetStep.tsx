@@ -54,7 +54,7 @@ export function LocationBudgetStep({
       {/* Form */}
       <ScrollView
         className="flex-1 px-4 pb-6"
-        contentContainerClassName="max-w-md mx-auto gap-8"
+        contentContainerStyle={{ gap: 32, paddingBottom: 24 }}
       >
         {/* Nima Chat Bubble */}
         <View className="bg-surface/80 border border-border/50 rounded-2xl p-4">

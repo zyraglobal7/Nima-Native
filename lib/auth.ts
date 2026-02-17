@@ -13,6 +13,8 @@ import {
   getUserInfo,
   setUserInfo,
   clearAllTokens,
+  setPKCEVerifier,
+  clearPKCEVerifier,
   type StoredUserInfo,
 } from './auth-storage';
 
@@ -23,14 +25,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 const WORKOS_CLIENT_ID = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID!;
 
-// Dynamically compute the redirect URI for the current environment:
+// Use the redirect URI from environment variable if set, otherwise compute it:
 // - Expo Go: exp://127.0.0.1:8081/--/callback (local) or exp://u.expo.dev/[project-id]/--/callback (tunnel)
 // - Dev build / Production: shopnima://callback
-const REDIRECT_URI = AuthSession.makeRedirectUri({
+const REDIRECT_URI = process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI || AuthSession.makeRedirectUri({
   scheme: 'shopnima',
   path: 'callback',
 });
-console.log('[AUTH] Computed Redirect URI:', REDIRECT_URI);
+console.log('[AUTH] Using Redirect URI:', REDIRECT_URI);
+console.log('[AUTH] From env var:', !!process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI);
 
 const WORKOS_AUTH_URL = 'https://api.workos.com/user_management/authorize';
 const WORKOS_TOKEN_URL = 'https://api.workos.com/user_management/authenticate';
@@ -114,6 +117,27 @@ function isTokenExpired(token: string): boolean {
     return Date.now() >= exp - 60_000;
   } catch {
     return true;
+  }
+}
+
+// ---------- Module-level auth state updaters ----------
+// Allow standalone functions (launchWorkOSAuth, callLogout) to update the
+// hook's React state from outside the component tree.
+let _loginFn: ((user: StoredUserInfo) => void) | null = null;
+let _logoutFn: (() => Promise<void>) | null = null;
+
+export function callLogin(user: StoredUserInfo): void {
+  if (_loginFn) {
+    _loginFn(user);
+  }
+}
+
+export async function callLogout(): Promise<void> {
+  if (_logoutFn) {
+    await _logoutFn();
+  } else {
+    // Fallback: just clear tokens if hook isn't mounted yet
+    await clearAllTokens();
   }
 }
 
@@ -231,11 +255,29 @@ export function useAuthFromWorkOS() {
     []
   );
 
+  const logout = useCallback(async () => {
+    await clearAllTokens();
+    setState({ isLoading: false, isAuthenticated: false, user: null });
+  }, []);
+
+  // Register login/logout so callLogin/callLogout work from anywhere
+  useEffect(() => {
+    _loginFn = (user: StoredUserInfo) => {
+      setState({ isLoading: false, isAuthenticated: true, user });
+    };
+    _logoutFn = logout;
+    return () => {
+      _loginFn = null;
+      _logoutFn = null;
+    };
+  }, [logout]);
+
   return {
     isLoading: state.isLoading,
     isAuthenticated: state.isAuthenticated,
     user: state.user,
     fetchAccessToken,
+    logout,
   };
 }
 
@@ -274,6 +316,10 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
 
     const authUrl = `${WORKOS_AUTH_URL}?${params.toString()}`;
 
+    // Persist the PKCE verifier so the /callback page can complete the exchange
+    // if needed (web popup blocked, or native deep link redirect).
+    await setPKCEVerifier(codeVerifier);
+
     // On web, persist the PKCE verifier to sessionStorage so the /callback
     // page can complete the exchange if the popup flow fails (e.g. popup blocked).
     if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
@@ -287,6 +333,7 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
     if (result.type !== 'success' || !result.url) {
       console.log('[AUTH] Auth session cancelled or failed:', result.type);
       // Clean up persisted verifier on failure
+      await clearPKCEVerifier();
       if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem('workos_pkce_verifier');
         sessionStorage.removeItem('workos_redirect_uri');
@@ -341,14 +388,21 @@ export async function launchWorkOSAuth(mode: 'sign-in' | 'sign-up' = 'sign-in'):
     ]);
 
     // Clean up persisted verifier after successful popup flow
+    await clearPKCEVerifier();
     if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('workos_pkce_verifier');
       sessionStorage.removeItem('workos_redirect_uri');
     }
 
+    // Update the auth hook's React state immediately so Convex sees the user
+    // as authenticated before any navigation happens.
+    callLogin(userInfo);
+
     return { accessToken, refreshToken: refreshTokenValue, user: userInfo };
   } catch (error) {
     console.error('[AUTH] launchWorkOSAuth error:', error);
+    // Clean up verifier on error
+    await clearPKCEVerifier();
     return null;
   }
 }

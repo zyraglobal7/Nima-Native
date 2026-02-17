@@ -3,7 +3,8 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "../global.css";
 import Toast from "react-native-toast-message";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
+
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -28,8 +29,9 @@ import { SelectionProvider } from "@/lib/contexts/SelectionContext";
 import { useAuthFromWorkOS } from "@/lib/auth";
 import { UserDataSync } from "@/components/UserDataSync";
 import { Header } from "@/components/ui/Header";
-import { usePathname } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
+import { useConvexAuth } from "convex/react";
 
 // Keep splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -37,12 +39,25 @@ SplashScreen.preventAutoHideAsync();
 // Create Convex client (single instance)
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
 
+// Routes that are accessible without authentication
+const PUBLIC_PATHS = ["/", "/onboarding", "/callback"];
+
 function LayoutContent() {
   const { isDark } = useTheme();
   const pathname = usePathname();
+  const router = useRouter();
+  const { isLoading, isAuthenticated } = useConvexAuth();
 
   // Register for push notifications and save token to Convex
   usePushNotifications();
+
+  // Redirect unauthenticated users away from protected routes
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated && !PUBLIC_PATHS.includes(pathname)) {
+      router.replace("/");
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
 
   // Determine if we should show the global header
   const showHeader =

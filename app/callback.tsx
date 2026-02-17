@@ -153,7 +153,7 @@ export default function CallbackScreen() {
           {error}
         </Text>
         <Pressable
-          onPress={() => router.replace("/(auth)/sign-in")}
+          onPress={() => router.replace("/")}
           style={({ pressed }) => ({
             marginTop: 12,
             backgroundColor: "#5C2A33",

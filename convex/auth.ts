@@ -25,21 +25,36 @@ export const exchangeWorkOSCode = action({
       throw new Error('Missing EXPO_PUBLIC_WORKOS_CLIENT_ID in Convex env vars');
     }
 
+    // Build request body - only include client_secret if it's set
+    // (PKCE flow typically doesn't need it for mobile/public clients)
+    const requestBody: Record<string, string> = {
+      client_id: clientId,
+      grant_type: 'authorization_code',
+      code: args.code,
+      code_verifier: args.code_verifier,
+      redirect_uri: args.redirect_uri,
+    };
+
+    // Only add client_secret if explicitly configured (for confidential clients)
+    const clientSecret = process.env.WORKOS_API_KEY;
+    if (clientSecret) {
+      requestBody.client_secret = clientSecret;
+    }
+
     const response = await fetch(WORKOS_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        grant_type: 'authorization_code',
-        code: args.code,
-        code_verifier: args.code_verifier,
-        // Optional: client_secret if you decide to use it, but PKCE usually avoids it
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('WorkOS Token Exchange Failed:', response.status, errorText);
+      console.error('WorkOS Token Exchange Failed:', {
+        status: response.status,
+        error: errorText,
+        code: args.code.substring(0, 10) + '...',
+        redirect_uri: args.redirect_uri,
+      });
       throw new Error(`Token exchange failed: ${errorText}`);
     }
 
