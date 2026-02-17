@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import {
   StepProps,
@@ -10,11 +11,28 @@ import {
   trackBackClicked,
   ONBOARDING_STEPS,
 } from "@/lib/analytics";
+import { Slider } from "@/components/ui/Slider";
 
 // Constants
+const DEFAULT_SHIRT_SIZE = "M";
+const DEFAULT_WAIST_SIZE = "32";
 const DEFAULT_HEIGHT_CM = "170";
+const DEFAULT_SHOE_SIZE_EU = "40";
+
 const HEIGHT_CM_MIN = 140;
 const HEIGHT_CM_MAX = 210;
+const HEIGHT_FT_MIN = 4.6;
+const HEIGHT_FT_MAX = 6.9;
+
+const SHIRT_SIZES = SIZE_OPTIONS.shirt;
+const WAIST_SIZES = SIZE_OPTIONS.waist;
+
+function formatHeight(value: number, unit: "cm" | "ft"): string {
+  if (unit === "cm") return `${Math.round(value)} cm`;
+  const feet = Math.floor(value);
+  const inches = Math.round((value - feet) * 12);
+  return `${feet}'${inches}"`;
+}
 
 export function SizeFitStep({
   formData,
@@ -22,15 +40,86 @@ export function SizeFitStep({
   onNext,
   onBack,
 }: StepProps) {
-  const handleShoeSizeUnitChange = (newUnit: ShoeSizeUnit) => {
-    if (newUnit === formData.shoeSizeUnit) return;
-    const convertedSize = convertShoeSize(
-      formData.shoeSize,
-      formData.shoeSizeUnit,
-      newUnit,
-    );
-    updateFormData({ shoeSizeUnit: newUnit, shoeSize: convertedSize });
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">(
+    formData.heightUnit || "cm",
+  );
+  const [shoeSizeUnit, setShoeSizeUnit] = useState<ShoeSizeUnit>(
+    formData.shoeSizeUnit || "EU",
+  );
+
+  // Initialize defaults on mount
+  useEffect(() => {
+    const updates: Partial<typeof formData> = {};
+    if (!formData.shirtSize) updates.shirtSize = DEFAULT_SHIRT_SIZE;
+    if (!formData.waistSize) updates.waistSize = DEFAULT_WAIST_SIZE;
+    if (!formData.height)
+      updates.height =
+        heightUnit === "cm" ? DEFAULT_HEIGHT_CM : String(HEIGHT_FT_MIN);
+    if (!formData.shoeSize) {
+      updates.shoeSize =
+        shoeSizeUnit === "EU"
+          ? DEFAULT_SHOE_SIZE_EU
+          : convertShoeSize(DEFAULT_SHOE_SIZE_EU, "EU", shoeSizeUnit);
+    }
+    if (Object.keys(updates).length > 0) updateFormData(updates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleHeightUnitChange = (newUnit: "cm" | "ft") => {
+    if (newUnit === heightUnit) return;
+    const current = parseFloat(formData.height) || 170;
+    const converted =
+      newUnit === "cm"
+        ? Math.round(current * 30.48).toString()
+        : (current / 30.48).toFixed(1);
+    setHeightUnit(newUnit);
+    updateFormData({ height: converted, heightUnit: newUnit });
   };
+
+  const handleShoeSizeUnitChange = (newUnit: ShoeSizeUnit) => {
+    if (newUnit === shoeSizeUnit) return;
+    const currentSize = formData.shoeSize || DEFAULT_SHOE_SIZE_EU;
+    const converted = convertShoeSize(currentSize, shoeSizeUnit, newUnit);
+    setShoeSizeUnit(newUnit);
+    updateFormData({ shoeSize: converted, shoeSizeUnit: newUnit });
+  };
+
+  // Shirt slider
+  const shirtIndex = Math.max(
+    0,
+    SHIRT_SIZES.indexOf(formData.shirtSize || DEFAULT_SHIRT_SIZE),
+  );
+  const handleShirtSlider = (v: number) =>
+    updateFormData({ shirtSize: SHIRT_SIZES[Math.round(v)] });
+
+  // Waist slider
+  const waistIndex = Math.max(
+    0,
+    WAIST_SIZES.indexOf(formData.waistSize || DEFAULT_WAIST_SIZE),
+  );
+  const handleWaistSlider = (v: number) =>
+    updateFormData({ waistSize: WAIST_SIZES[Math.round(v)] });
+
+  // Height slider
+  const heightValue =
+    parseFloat(formData.height) ||
+    (heightUnit === "cm" ? 170 : parseFloat(DEFAULT_HEIGHT_CM) / 30.48);
+  const handleHeightSlider = (v: number) =>
+    updateFormData({ height: v.toFixed(heightUnit === "cm" ? 0 : 1), heightUnit });
+
+  // Shoe slider
+  const shoeSizes = SIZE_OPTIONS.shoe[shoeSizeUnit];
+  const shoeIndex = Math.max(
+    0,
+    shoeSizes.indexOf(
+      formData.shoeSize ||
+        (shoeSizeUnit === "EU"
+          ? DEFAULT_SHOE_SIZE_EU
+          : convertShoeSize(DEFAULT_SHOE_SIZE_EU, "EU", shoeSizeUnit)),
+    ),
+  );
+  const handleShoeSlider = (v: number) =>
+    updateFormData({ shoeSize: shoeSizes[Math.round(v)], shoeSizeUnit });
 
   return (
     <View className="flex-1">
@@ -62,174 +151,164 @@ export function SizeFitStep({
       {/* Form */}
       <ScrollView
         className="flex-1 px-4 pb-6"
-        contentContainerClassName="max-w-md mx-auto gap-8"
+        contentContainerStyle={{ gap: 32, paddingBottom: 24 }}
       >
-        {/* Shirt Size */}
-        <View className="gap-3">
-          <Text className="text-sm font-medium text-foreground">
-            👕 Shirt / Top Size
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {SIZE_OPTIONS.shirt.map((size) => {
-                const isSelected = formData.shirtSize === size;
-                return (
-                  <Pressable
-                    key={size}
-                    onPress={() => updateFormData({ shirtSize: size })}
-                    className={`w-12 h-12 rounded-xl items-center justify-center border-2 ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        isSelected ? "text-primary" : "text-foreground"
-                      }`}
-                    >
-                      {size}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+        {/* Chat Bubble */}
+        <View className="bg-surface/80 border border-border/50 rounded-2xl p-4">
+          <View className="flex-row items-start gap-3">
+            <View className="w-8 h-8 rounded-full bg-primary items-center justify-center flex-shrink-0">
+              <Text className="text-sm">💬</Text>
             </View>
-          </ScrollView>
+            <Text className="flex-1 text-sm text-foreground leading-5">
+              Don't worry, I won't judge! These help me find clothes that
+              actually fit you — no more guessing games.
+            </Text>
+          </View>
+        </View>
+
+        {/* Shirt Size */}
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-foreground">
+              👕 T-Shirt Size
+            </Text>
+            <Text className="text-lg font-semibold text-primary">
+              {formData.shirtSize || DEFAULT_SHIRT_SIZE}
+            </Text>
+          </View>
+          <Slider
+            value={shirtIndex}
+            min={0}
+            max={SHIRT_SIZES.length - 1}
+            step={1}
+            onValueChange={handleShirtSlider}
+          />
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-muted-foreground">
+              {SHIRT_SIZES[0]}
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              {SHIRT_SIZES[SHIRT_SIZES.length - 1]}
+            </Text>
+          </View>
         </View>
 
         {/* Waist Size */}
-        <View className="gap-3">
-          <Text className="text-sm font-medium text-foreground">
-            👖 Waist Size (inches)
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {SIZE_OPTIONS.waist.map((size) => {
-                const isSelected = formData.waistSize === size;
-                return (
-                  <Pressable
-                    key={size}
-                    onPress={() => updateFormData({ waistSize: size })}
-                    className={`w-12 h-12 rounded-xl items-center justify-center border-2 ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        isSelected ? "text-primary" : "text-foreground"
-                      }`}
-                    >
-                      {size}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-foreground">
+              📏 Waist Size
+            </Text>
+            <Text className="text-lg font-semibold text-primary">
+              {formData.waistSize || DEFAULT_WAIST_SIZE} in
+            </Text>
+          </View>
+          <Slider
+            value={waistIndex}
+            min={0}
+            max={WAIST_SIZES.length - 1}
+            step={1}
+            onValueChange={handleWaistSlider}
+          />
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-muted-foreground">
+              {WAIST_SIZES[0]} in
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              {WAIST_SIZES[WAIST_SIZES.length - 1]} in
+            </Text>
+          </View>
         </View>
 
         {/* Height */}
-        <View className="gap-3">
-          <Text className="text-sm font-medium text-foreground">📏 Height</Text>
-          {/* Unit Toggle */}
-          <View className="flex-row bg-surface rounded-lg overflow-hidden border border-border">
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-foreground">
+              📐 Height
+            </Text>
+            <Text className="text-lg font-semibold text-primary">
+              {formatHeight(heightValue, heightUnit)}
+            </Text>
+          </View>
+
+          {/* Unit toggle */}
+          <View className="flex-row gap-2 justify-center">
             {(["cm", "ft"] as const).map((unit) => (
               <Pressable
                 key={unit}
-                onPress={() => {
-                  if (unit === "cm" && formData.heightUnit === "ft") {
-                    const ft = parseFloat(formData.height) || 5.7;
-                    const cm = Math.round(ft * 30.48);
-                    updateFormData({ heightUnit: "cm", height: cm.toString() });
-                  } else if (unit === "ft" && formData.heightUnit === "cm") {
-                    const cm = parseInt(formData.height) || 170;
-                    const ft = (cm / 30.48).toFixed(1);
-                    updateFormData({ heightUnit: "ft", height: ft });
-                  }
-                }}
-                className={`flex-1 py-2 items-center ${
-                  formData.heightUnit === unit ? "bg-primary" : ""
+                onPress={() => handleHeightUnitChange(unit)}
+                className={`px-5 py-1.5 rounded-full border ${
+                  heightUnit === unit
+                    ? "bg-primary border-primary"
+                    : "bg-surface border-border"
                 }`}
               >
                 <Text
                   className={`text-sm font-medium ${
-                    formData.heightUnit === unit
+                    heightUnit === unit
                       ? "text-primary-foreground"
-                      : "text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  {unit}
+                  {unit === "ft" ? "ft / in" : "cm"}
                 </Text>
               </Pressable>
             ))}
           </View>
-          {/* Height value as scrollable chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {Array.from(
-                { length: Math.round((HEIGHT_CM_MAX - HEIGHT_CM_MIN) / 5) + 1 },
-                (_, i) => (HEIGHT_CM_MIN + i * 5).toString(),
-              ).map((h) => {
-                const displayH =
-                  formData.heightUnit === "ft"
-                    ? (parseInt(h) / 30.48).toFixed(1)
-                    : h;
-                const isSelected =
-                  formData.heightUnit === "cm"
-                    ? formData.height === h
-                    : Math.abs(
-                        parseFloat(formData.height) - parseFloat(displayH),
-                      ) < 0.1;
-                return (
-                  <Pressable
-                    key={h}
-                    onPress={() =>
-                      updateFormData({
-                        height: formData.heightUnit === "ft" ? displayH : h,
-                      })
-                    }
-                    className={`px-4 py-2 rounded-full border-2 ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        isSelected ? "text-primary" : "text-foreground"
-                      }`}
-                    >
-                      {displayH} {formData.heightUnit}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
+
+          <Slider
+            value={heightValue}
+            min={heightUnit === "cm" ? HEIGHT_CM_MIN : HEIGHT_FT_MIN}
+            max={heightUnit === "cm" ? HEIGHT_CM_MAX : HEIGHT_FT_MAX}
+            step={heightUnit === "cm" ? 1 : 0.1}
+            onValueChange={handleHeightSlider}
+          />
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-muted-foreground">
+              {heightUnit === "cm" ? "140 cm" : `4'7"`}
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              {heightUnit === "cm" ? "210 cm" : `6'11"`}
+            </Text>
+          </View>
         </View>
 
         {/* Shoe Size */}
-        <View className="gap-3">
-          <Text className="text-sm font-medium text-foreground">
-            👟 Shoe Size
-          </Text>
-          {/* Unit Toggle */}
-          <View className="flex-row bg-surface rounded-lg overflow-hidden border border-border">
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-foreground">
+              👟 Shoe Size
+            </Text>
+            <Text className="text-lg font-semibold text-primary">
+              {formData.shoeSize ||
+                (shoeSizeUnit === "EU"
+                  ? DEFAULT_SHOE_SIZE_EU
+                  : convertShoeSize(
+                      DEFAULT_SHOE_SIZE_EU,
+                      "EU",
+                      shoeSizeUnit,
+                    ))}{" "}
+              {shoeSizeUnit}
+            </Text>
+          </View>
+
+          {/* Unit toggle */}
+          <View className="flex-row gap-2 justify-center">
             {(["EU", "US", "UK"] as const).map((unit) => (
               <Pressable
                 key={unit}
                 onPress={() => handleShoeSizeUnitChange(unit)}
-                className={`flex-1 py-2 items-center ${
-                  formData.shoeSizeUnit === unit ? "bg-primary" : ""
+                className={`px-5 py-1.5 rounded-full border ${
+                  shoeSizeUnit === unit
+                    ? "bg-primary border-primary"
+                    : "bg-surface border-border"
                 }`}
               >
                 <Text
                   className={`text-sm font-medium ${
-                    formData.shoeSizeUnit === unit
+                    shoeSizeUnit === unit
                       ? "text-primary-foreground"
-                      : "text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {unit}
@@ -237,36 +316,32 @@ export function SizeFitStep({
               </Pressable>
             ))}
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {SIZE_OPTIONS.shoe[formData.shoeSizeUnit].map((size) => {
-                const isSelected = formData.shoeSize === size;
-                return (
-                  <Pressable
-                    key={size}
-                    onPress={() => updateFormData({ shoeSize: size })}
-                    className={`w-12 h-12 rounded-xl items-center justify-center border-2 ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        isSelected ? "text-primary" : "text-foreground"
-                      }`}
-                    >
-                      {size}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
+
+          <Slider
+            value={shoeIndex}
+            min={0}
+            max={shoeSizes.length - 1}
+            step={1}
+            onValueChange={handleShoeSlider}
+          />
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-muted-foreground">
+              {shoeSizes[0]}
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              {shoeSizes[shoeSizes.length - 1]}
+            </Text>
+          </View>
         </View>
 
-        {/* Bottom spacer for scroll */}
-        <View className="h-4" />
+        {/* Pro tip */}
+        <View className="bg-surface rounded-xl p-4">
+          <Text className="font-medium text-foreground mb-1">💡 Pro tip</Text>
+          <Text className="text-sm text-muted-foreground">
+            Not 100% sure? Go with your usual size — I'll help you find the
+            perfect fit from there.
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Footer CTA */}

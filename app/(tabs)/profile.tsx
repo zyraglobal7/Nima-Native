@@ -13,7 +13,6 @@ import { SettingsTab } from "@/components/profile/SettingsTab";
 import { PhotosTab } from "@/components/profile/PhotosTab";
 import { StyleFitTab } from "@/components/profile/StyleFitTab";
 import { AccountTab } from "@/components/profile/AccountTab";
-import { Redirect } from "expo-router";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { NavigationContext } from "@react-navigation/core";
@@ -35,10 +34,6 @@ export default function ProfileScreen() {
         <ActivityIndicator size="large" color="#A67C52" />
       </SafeAreaView>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/sign-in" />;
   }
 
   const renderContent = () => {

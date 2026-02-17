@@ -1,9 +1,16 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Sparkles, BookOpen, User, MessageCircle } from "lucide-react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
+import { useConvexAuth } from "convex/react";
 
 export default function TabLayout() {
   const { isDark } = useTheme();
+  const { isLoading, isAuthenticated } = useConvexAuth();
+
+  // Don't redirect while auth state is loading — avoids a flash to "/"
+  if (!isLoading && !isAuthenticated) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <Tabs

@@ -69,8 +69,11 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
     try {
       const result = await launchWorkOSAuth("sign-in");
       if (result) {
-        // Auth successful — navigate to main app
-        router.replace("/(tabs)/discover");
+        // Auth state is already updated via callLogin() inside launchWorkOSAuth.
+        // Navigate to "/" so index.tsx can run onboarding checks and redirect
+        // to the right screen (discover or onboarding) with a fully authenticated
+        // Convex client.
+        router.replace("/");
       }
       // If result is null, user cancelled — do nothing
     } catch (err) {
