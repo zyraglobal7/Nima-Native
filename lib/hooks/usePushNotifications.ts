@@ -9,6 +9,11 @@ import { useRouter } from "expo-router";
 // Detect Expo Go where push notifications native module is unavailable (SDK 53+)
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 
+let Haptics: typeof import("expo-haptics") | null = null;
+try {
+  Haptics = require("expo-haptics");
+} catch {}
+
 let Notifications: typeof import("expo-notifications") | null = null;
 if (!isExpoGo) {
   try {
@@ -189,6 +194,10 @@ export function usePushNotifications() {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notif) => {
         setNotification(notif);
+        const data = notif.request.content.data;
+        if (data?.type === "message_received" && Haptics) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
       });
 
     // Listen for user tapping on a notification

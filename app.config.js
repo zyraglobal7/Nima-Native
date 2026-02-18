@@ -1,0 +1,59 @@
+export default {
+  expo: {
+    name: "Nima",
+    slug: "nima-ai",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
+    scheme: "shopnima",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/nima-mascott.png",
+      resizeMode: "contain",
+      backgroundColor: "#FAF8F5",
+    },
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.nima.app",
+    },
+    android: {
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      adaptiveIcon: {
+        foregroundImage: "./assets/nima-mascott.png",
+        backgroundColor: "#FAF8F5",
+      },
+      edgeToEdgeEnabled: true,
+      package: "com.nima.app",
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+      bundler: "metro",
+    },
+    plugins: [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#5C2A33",
+          sounds: ["./assets/confident_543.mp3"],
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+    },
+    extra: {
+      router: {},
+      eas: {
+        projectId: "2cd055b1-947c-4f4e-9878-0cb65c8cf604",
+      },
+    },
+    owner: "nima-ais-organization",
+  },
+};

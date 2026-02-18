@@ -11,6 +11,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { ApparelItem } from "./ApparelItemCard";
+import * as Haptics from "expo-haptics";
 import { formatPrice } from "@/lib/utils/format";
 import { Text } from "@/components/ui/Text";
 import BottomSheet, {
@@ -104,6 +105,7 @@ export function CreateLookSheet({
   useEffect(() => {
     if (lookStatus?.status === "completed" && lookId) {
       setStatus("completed");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (lookStatus.imageUrl) {
         setGeneratedImageUrl(lookStatus.imageUrl);
       }
@@ -318,7 +320,7 @@ export function CreateLookSheet({
         </View>
 
         {/* Content */}
-        <BottomSheetScrollView style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 16 }}>
+        <BottomSheetScrollView style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 16 ,paddingBottom: 120 }}>
           {status === "completed" ? (
             <View className="gap-6">
               {/* Generated look image */}
