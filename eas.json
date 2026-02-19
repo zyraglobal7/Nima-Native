@@ -6,7 +6,12 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://rare-guineapig-47.convex.cloud",
+        "EXPO_PUBLIC_WORKOS_CLIENT_ID": "client_01KC47243D8SCBY79ZKEPH18EX",
+        "EXPO_PUBLIC_WORKOS_REDIRECT_URI": "shopnima://callback"
+      }
     },
     "preview": {
       "extends": "production",
@@ -18,6 +23,11 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://rare-guineapig-47.convex.cloud",
+        "EXPO_PUBLIC_WORKOS_CLIENT_ID": "client_01KC47243D8SCBY79ZKEPH18EX",
+        "EXPO_PUBLIC_WORKOS_REDIRECT_URI": "shopnima://callback"
+      },
       "android": {
         "env": {
           "GOOGLE_SERVICES_JSON": "./google-services.json"
