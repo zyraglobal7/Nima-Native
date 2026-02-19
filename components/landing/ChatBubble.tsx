@@ -3,6 +3,7 @@ import { View, Animated, Easing } from "react-native";
 import { MessageCircle } from "lucide-react-native";
 import { TypingText } from "./TypingText";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 const CHAT_MESSAGES = [
   "You'd look so good in this...",
@@ -13,6 +14,7 @@ const CHAT_MESSAGES = [
 ];
 
 export function ChatBubble() {
+  const { isDark } = useTheme();
   const [messageIndex, setMessageIndex] = useState(0);
   const [key, setKey] = useState(0);
 
@@ -92,15 +94,15 @@ export function ChatBubble() {
     >
       <View className="relative">
         {/* Chat bubble */}
-        <View className="bg-surface/90 border border-border/50 rounded-2xl px-5 py-3 shadow-lg flex-row items-center gap-3">
+        <View className="bg-surface dark:bg-surface-dark border border-border/50 dark:border-border-dark/50 rounded-2xl px-5 py-3 shadow-lg flex-row items-center gap-3">
           {/* Icon Circle */}
           <LinearGradient
-            colors={["#5C2A33", "#A67C52"]} // Primary to Secondary
+            colors={isDark ? ["#C9A07A", "#A66B73"] : ["#5C2A33", "#A67C52"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             className="w-8 h-8 rounded-full items-center justify-center"
           >
-            <MessageCircle size={16} color="#FAF8F5" />
+            <MessageCircle size={16} color={isDark ? "#1A1614" : "#FAF8F5"} />
           </LinearGradient>
 
           {/* Text Area */}
@@ -111,7 +113,7 @@ export function ChatBubble() {
           </View>
         </View>
         {/* Bubble tail */}
-        <View className="absolute -bottom-2 left-8 w-4 h-4 bg-surface/90 border-b border-r border-border/50 transform rotate-45" />
+        <View className="absolute -bottom-2 left-8 w-4 h-4 bg-surface dark:bg-surface-dark border-b border-r border-border/50 dark:border-border-dark/50 transform rotate-45" />
       </View>
     </Animated.View>
   );

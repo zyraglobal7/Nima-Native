@@ -8,16 +8,21 @@
       "developmentClient": true,
       "distribution": "internal"
     },
-"preview": {
-  "extends": "production",
-  "distribution": "internal",
-  "android": {
-    "buildType": "apk",
-    "gradleCommand": ":app:assembleRelease"
-  }
-},
+    "preview": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "env": {
+          "GOOGLE_SERVICES_JSON": "./google-services.json"
+        }
+      }
     }
   }
 }

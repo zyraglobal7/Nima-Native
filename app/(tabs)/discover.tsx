@@ -505,7 +505,7 @@ export default function DiscoverScreen() {
       </ScrollView>
 
       {/* Floating "Try On Selected" button (fixed at bottom) */}
-      {isSelectionMode && selectedCount >= 2 && activeFilter === "apparel" && (
+      {isSelectionMode && selectedCount >= 2 && activeFilter === "apparel" && !showCreateLookSheet && (
         <View
           className="absolute bottom-6 left-4 right-4"
           style={{ zIndex: 50 }}

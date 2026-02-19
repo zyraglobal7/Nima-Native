@@ -4,8 +4,9 @@ import "../global.css";
 import Toast from "react-native-toast-message";
 
 import { useEffect, useCallback } from "react";
+import { View, ActivityIndicator } from "react-native";
 
-import { Stack } from "expo-router";
+import { Stack, usePathname, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexReactClient, ConvexProviderWithAuth } from "convex/react";
@@ -29,9 +30,17 @@ import { SelectionProvider } from "@/lib/contexts/SelectionContext";
 import { useAuthFromWorkOS } from "@/lib/auth";
 import { UserDataSync } from "@/components/UserDataSync";
 import { Header } from "@/components/ui/Header";
-import { usePathname, useRouter } from "expo-router";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { useConvexAuth } from "convex/react";
+import {
+  AppErrorBoundary,
+  RouteErrorBoundary,
+} from "@/components/ErrorBoundary";
+import { NetworkProvider } from "@/lib/contexts/NetworkContext";
+import { NoInternetBanner } from "@/components/ui/NoInternetBanner";
+
+// Re-export as Expo Router's route-level ErrorBoundary
+export { RouteErrorBoundary as ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Keep splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -45,7 +54,6 @@ const PUBLIC_PATHS = ["/", "/onboarding", "/callback"];
 function LayoutContent() {
   const { isDark } = useTheme();
   const pathname = usePathname();
-  const router = useRouter();
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   // Register for push notifications and save token to Convex
@@ -57,7 +65,7 @@ function LayoutContent() {
     if (!isAuthenticated && !PUBLIC_PATHS.includes(pathname)) {
       router.replace("/");
     }
-  }, [isLoading, isAuthenticated, pathname, router]);
+  }, [isLoading, isAuthenticated, pathname]);
 
   // Determine if we should show the global header
   const showHeader =
@@ -80,6 +88,9 @@ function LayoutContent() {
         <UserDataSync />
         <StatusBar style={isDark ? "light" : "dark"} />
 
+        {/* Offline Banner */}
+        <NoInternetBanner />
+
         {/* Global Header */}
         {showHeader && <Header />}
 
@@ -92,15 +103,6 @@ function LayoutContent() {
         >
           {/* Tab navigator */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-          {/* Auth screens — presented as modals */}
-          <Stack.Screen
-            name="(auth)"
-            options={{
-              headerShown: false,
-              presentation: "modal",
-            }}
-          />
 
           {/* Onboarding — full screen, no back gesture */}
           <Stack.Screen
@@ -148,10 +150,10 @@ function LayoutContent() {
 
           {/* Utility screens */}
           <Stack.Screen name="cart" options={{ headerShown: false }} />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="checkout"
             options={{ headerShown: true, title: "Checkout" }}
-          />
+          /> */}
           <Stack.Screen name="orders/index" options={{ headerShown: false }} />
           <Stack.Screen name="orders/[id]" options={{ headerShown: false }} />
           <Stack.Screen
@@ -206,16 +208,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <SafeAreaProvider>
-          <ThemeProvider>
-            <ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
-              <LayoutContent />
-            </ConvexProviderWithAuth>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </BottomSheetModalProvider>
-      <Toast />
+      <AppErrorBoundary>
+        <BottomSheetModalProvider>
+          <SafeAreaProvider>
+            <ThemeProvider>
+              <NetworkProvider>
+                <ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
+                  <LayoutContent />
+                </ConvexProviderWithAuth>
+              </NetworkProvider>
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </BottomSheetModalProvider>
+        <Toast />
+      </AppErrorBoundary>
     </GestureHandlerRootView>
   );
 }

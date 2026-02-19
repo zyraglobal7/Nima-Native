@@ -308,7 +308,7 @@ export default function LookDetailScreen() {
       >
         {/* Floating header */}
         <View
-          style={{ paddingTop: insets.top + 8 }}
+          style={{ paddingTop: 55 }}
           className="absolute z-10 w-full flex-row justify-between px-4"
         >
           <TouchableOpacity
@@ -345,8 +345,8 @@ export default function LookDetailScreen() {
 
         {/* Hero Image */}
         <View
-          style={{ width: SCREEN_WIDTH, aspectRatio: 3 / 4 }}
-          className="bg-surface-alt dark:bg-surface-alt-dark "
+          style={{ width: SCREEN_WIDTH, aspectRatio: 3 / 4, paddingTop: insets.top }}
+          className="bg-surface-alt dark:bg-surface-alt-dark"
         >
           {imageUrl ? (
             <Image

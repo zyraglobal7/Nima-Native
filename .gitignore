@@ -39,6 +39,16 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Convex generated files
+convex/_generated/
+
+# Firebase Admin SDK keys
+*-firebase-adminsdk-*.json
+
+# Android signing credentials
+credentials.json
+credentials/
+
 # generated native folders
 /ios
 /android

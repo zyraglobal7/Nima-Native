@@ -65,6 +65,18 @@ export default defineSchema({
 
     // Role-based access control
     role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
+
+    // Saved shipping address (auto-saved from last order for checkout pre-fill)
+    savedShippingAddress: v.optional(v.object({
+      fullName: v.string(),
+      addressLine1: v.string(),
+      addressLine2: v.optional(v.string()),
+      city: v.string(),
+      state: v.optional(v.string()),
+      postalCode: v.string(),
+      country: v.string(),
+      phone: v.string(),
+    })),
   })
     .index('by_workos_user_id', ['workosUserId'])
     .index('by_email', ['email'])
@@ -785,6 +797,10 @@ export default defineSchema({
     paymentMethod: v.optional(v.string()),
     paymentIntentId: v.optional(v.string()),
 
+    // Fingo Pay M-Pesa
+    merchantTransactionId: v.optional(v.string()), // Our unique ref for Fingo Pay
+    mpesaPhoneNumber: v.optional(v.string()), // Phone used for M-Pesa STK Push
+
     // Order status (overall)
     status: v.union(
       v.literal('pending'), // Just placed
@@ -802,7 +818,8 @@ export default defineSchema({
     .index('by_user', ['userId'])
     .index('by_order_number', ['orderNumber'])
     .index('by_status', ['status'])
-    .index('by_created_at', ['createdAt']),
+    .index('by_created_at', ['createdAt'])
+    .index('by_merchant_transaction_id', ['merchantTransactionId']),
 
   /**
    * order_items - Individual line items in an order (seller-facing)

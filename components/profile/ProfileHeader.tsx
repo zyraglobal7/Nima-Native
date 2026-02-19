@@ -22,13 +22,13 @@ export function ProfileHeader({ onEdit }: ProfileHeaderProps) {
 
   return (
     <>
-      <View className="flex-row items-center space-x-4 mb-4">
+      <View className="flex-row items-center gap-4 mb-4">
         <View className="relative">
           <View className="w-20 h-20 rounded-full bg-surface dark:bg-surface-dark overflow-hidden items-center justify-center">
             {currentUser.profileImageUrl ? (
               <Image
                 source={{ uri: currentUser.profileImageUrl }}
-                className="w-full h-full"
+                style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
               />
             ) : (

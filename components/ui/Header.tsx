@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, SafeAreaView, Platform } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { usePathname, router } from "expo-router";
 import {
   Sparkles,
   ArrowLeft,
@@ -17,7 +17,6 @@ import { api } from "@/convex/_generated/api";
 
 export function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const { isDark } = useTheme();
 
   // Define root routes that show the Logo instead of Back button

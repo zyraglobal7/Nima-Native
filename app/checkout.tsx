@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -8,11 +8,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Vibration,
 } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Text } from "@/components/ui/Text";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import {
@@ -23,9 +25,13 @@ import {
   Check,
   AlertCircle,
   Sparkles,
-  Loader2,
+  Phone,
+  Smartphone,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Mascot image for success screen
+const mascotImage = require("@/assets/mascott.png");
 
 interface ShippingAddress {
   fullName: string;
@@ -49,6 +55,8 @@ const EMPTY_ADDRESS: ShippingAddress = {
   phone: "",
 };
 
+type CheckoutStep = "form" | "processing" | "success" | "failed";
+
 function formatPrice(amount: number, currency: string): string {
   return `${currency} ${amount.toLocaleString()}`;
 }
@@ -58,23 +66,73 @@ export default function CheckoutScreen() {
   const { isDark } = useTheme();
 
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS);
+  const [mpesaPhone, setMpesaPhone] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("form");
   const [orderNumber, setOrderNumber] = useState("");
+  const [orderId, setOrderId] = useState<Id<"orders"> | null>(null);
+  const [addressPrefilled, setAddressPrefilled] = useState(false);
 
   // Queries
   const cartItems = useQuery(api.cart.queries.getCart);
   const cartTotal = useQuery(api.cart.queries.getCartTotal);
+  const currentUser = useQuery(api.users.queries.getCurrentUser);
+
+  // Poll order payment status (only while processing)
+  const orderPaymentStatus = useQuery(
+    api.orders.queries.getOrderPaymentStatus,
+    orderId && checkoutStep === "processing" ? { orderId } : "skip",
+  );
 
   // Mutations
   const createOrder = useMutation(api.orders.mutations.createOrder);
+
+  // Pre-fill address from saved user data
+  useEffect(() => {
+    if (currentUser && !addressPrefilled) {
+      // Pre-fill M-Pesa phone from user profile
+      if (currentUser.phoneNumber && !mpesaPhone) {
+        setMpesaPhone(currentUser.phoneNumber);
+      }
+
+      // Pre-fill shipping address from saved data
+      if (currentUser.savedShippingAddress) {
+        const saved = currentUser.savedShippingAddress;
+        setAddress({
+          fullName: saved.fullName,
+          addressLine1: saved.addressLine1,
+          addressLine2: saved.addressLine2 ?? "",
+          city: saved.city,
+          state: saved.state ?? "",
+          postalCode: saved.postalCode,
+          country: saved.country,
+          phone: saved.phone,
+        });
+      }
+      setAddressPrefilled(true);
+    }
+  }, [currentUser, addressPrefilled, mpesaPhone]);
+
+  // Watch for payment status changes
+  useEffect(() => {
+    if (!orderPaymentStatus) return;
+
+    if (orderPaymentStatus.paymentStatus === "paid") {
+      setCheckoutStep("success");
+      // Vibration pattern: short-pause-short-pause-long
+      Vibration.vibrate([0, 100, 50, 100, 50, 200]);
+    } else if (orderPaymentStatus.paymentStatus === "failed") {
+      setCheckoutStep("failed");
+      Vibration.vibrate([0, 300]);
+    }
+  }, [orderPaymentStatus?.paymentStatus]);
 
   const isLoading = cartItems === undefined || cartTotal === undefined;
   const isEmpty = !isLoading && cartItems.length === 0;
 
   // Pricing
   const serviceFee = cartTotal ? Math.round(cartTotal.subtotal * 0.1) : 0;
-  const estimatedShipping = 1500;
+  const estimatedShipping = 500;
   const total = cartTotal
     ? cartTotal.subtotal + serviceFee + estimatedShipping
     : 0;
@@ -99,9 +157,20 @@ export default function CheckoutScreen() {
     address.country.trim() !== "" &&
     address.phone.trim() !== "";
 
+  const isPhoneValid = () => {
+    const phoneRegex = /^(?:\+254|254|0)(?:7|1)\d{8}$/;
+    return phoneRegex.test(mpesaPhone.replace(/\s/g, ""));
+  };
+
+  const canPlaceOrder = isAddressValid() && isPhoneValid();
+
   const handlePlaceOrder = async () => {
     if (!isAddressValid()) {
       Alert.alert("Missing Information", "Please fill in all required shipping fields.");
+      return;
+    }
+    if (!isPhoneValid()) {
+      Alert.alert("Invalid Phone", "Please enter a valid M-Pesa phone number (e.g., +254712345678).");
       return;
     }
 
@@ -118,9 +187,11 @@ export default function CheckoutScreen() {
           country: address.country,
           phone: address.phone,
         },
+        mpesaPhoneNumber: mpesaPhone.replace(/\s/g, ""),
       });
       setOrderNumber(result.orderNumber);
-      setOrderPlaced(true);
+      setOrderId(result.orderId);
+      setCheckoutStep("processing");
     } catch (error) {
       Alert.alert(
         "Order Failed",
@@ -131,24 +202,78 @@ export default function CheckoutScreen() {
     }
   };
 
-  // ──── Order Success Screen ────
-  if (orderPlaced) {
+  // ──── Processing Screen (Waiting for M-Pesa) ────
+  if (checkoutStep === "processing") {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={["top", "bottom"]}>
         <View className="flex-1 items-center justify-center px-6">
-          <View className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mb-6">
-            <Check size={40} color="#16a34a" />
+          <View className="w-20 h-20 rounded-full items-center justify-center mb-6"
+            style={{ backgroundColor: isDark ? "rgba(201,160,122,0.15)" : "rgba(92,42,51,0.1)" }}
+          >
+            <Smartphone size={36} color={iconColor} />
           </View>
+
           <Text variant="h3" className="text-center mb-2">
-            Order Placed!
+            Waiting for M-Pesa
+          </Text>
+
+          {orderNumber ? (
+            <Text className="text-primary dark:text-primary-dark font-medium text-center mb-2">
+              {orderNumber}
+            </Text>
+          ) : null}
+
+          <Text variant="muted" className="text-center mb-6 leading-relaxed max-w-xs">
+            An M-Pesa STK Push has been sent to{" "}
+            <Text className="font-medium text-foreground dark:text-foreground-dark">
+              {mpesaPhone}
+            </Text>
+            . Please enter your M-Pesa PIN to complete payment.
+          </Text>
+
+          <ActivityIndicator size="large" color={iconColor} />
+
+          <Text variant="caption" className="text-center mt-6 max-w-xs">
+            This will update automatically once payment is confirmed. Please do not close this screen.
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => {
+              setCheckoutStep("form");
+              setOrderId(null);
+              setOrderNumber("");
+            }}
+            className="mt-8 px-6 py-3 border border-border dark:border-border-dark rounded-2xl"
+          >
+            <Text className="text-sm text-foreground dark:text-foreground-dark">
+              Cancel & Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ──── Order Success Screen ────
+  if (checkoutStep === "success") {
+    return (
+      <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={["top", "bottom"]}>
+        <View className="flex-1 items-center justify-center px-6">
+          <Image
+            source={mascotImage}
+            style={{ width: 140, height: 140, marginBottom: 24 }}
+            contentFit="contain"
+          />
+          <Text variant="h3" className="text-center mb-2">
+            Order Confirmed! 🎉
           </Text>
           {orderNumber ? (
-            <Text className="text-primary font-medium text-center mb-2">
+            <Text className="text-primary dark:text-primary-dark font-medium text-center mb-2">
               {orderNumber}
             </Text>
           ) : null}
           <Text variant="muted" className="text-center mb-8 leading-relaxed max-w-xs">
-            Thanks for your order! Our Nima Delivers team will start shopping
+            Payment received! Our Nima Delivers team will start shopping
             for your items and deliver them to you soon.
           </Text>
 
@@ -169,6 +294,54 @@ export default function CheckoutScreen() {
             >
               <Text className="text-base font-medium text-foreground dark:text-foreground-dark">
                 View Orders
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ──── Payment Failed Screen ────
+  if (checkoutStep === "failed") {
+    return (
+      <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={["top", "bottom"]}>
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mb-6">
+            <AlertCircle size={40} color="#dc2626" />
+          </View>
+          <Text variant="h3" className="text-center mb-2">
+            Payment Failed
+          </Text>
+          {orderNumber ? (
+            <Text className="text-primary dark:text-primary-dark font-medium text-center mb-2">
+              {orderNumber}
+            </Text>
+          ) : null}
+          <Text variant="muted" className="text-center mb-8 leading-relaxed max-w-xs">
+            The M-Pesa payment was not completed. Please try again or use a different phone number.
+          </Text>
+
+          <View className="w-full gap-3">
+            <TouchableOpacity
+              onPress={() => {
+                setCheckoutStep("form");
+                setOrderId(null);
+                setOrderNumber("");
+              }}
+              className="bg-primary dark:bg-primary-dark py-4 rounded-2xl flex-row items-center justify-center gap-2"
+            >
+              <Text className="text-base font-semibold text-primary-foreground dark:text-primary-dark-foreground">
+                Try Again
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="border border-border dark:border-border-dark bg-surface dark:bg-surface-dark py-4 rounded-2xl items-center justify-center"
+            >
+              <Text className="text-base font-medium text-foreground dark:text-foreground-dark">
+                Back to Cart
               </Text>
             </TouchableOpacity>
           </View>
@@ -247,20 +420,6 @@ export default function CheckoutScreen() {
       className="flex-1 bg-background dark:bg-background-dark"
       edges={["top"]}
     >
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border/30 dark:border-border-dark/30">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full"
-        >
-          <ArrowLeft size={22} color={iconColor} />
-        </TouchableOpacity>
-        <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark">
-          Checkout
-        </Text>
-        <View className="w-10" />
-      </View>
-
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -334,11 +493,20 @@ export default function CheckoutScreen() {
 
           {/* Shipping Address */}
           <View className="bg-surface dark:bg-surface-dark rounded-2xl border border-border/30 dark:border-border-dark/30 p-4">
-            <View className="flex-row items-center gap-2 mb-4">
-              <MapPin size={18} color={iconColor} />
-              <Text className="font-medium text-foreground dark:text-foreground-dark">
-                Shipping Address
-              </Text>
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center gap-2">
+                <MapPin size={18} color={iconColor} />
+                <Text className="font-medium text-foreground dark:text-foreground-dark">
+                  Shipping Address
+                </Text>
+              </View>
+              {addressPrefilled && currentUser?.savedShippingAddress && (
+                <View className="bg-primary/10 dark:bg-primary-dark/10 px-2.5 py-1 rounded-full">
+                  <Text className="text-xs text-primary dark:text-primary-dark">
+                    Saved address
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View className="gap-4">
@@ -441,20 +609,53 @@ export default function CheckoutScreen() {
             </View>
           </View>
 
-          {/* Payment Method */}
+          {/* Payment Method - M-Pesa */}
           <View className="bg-surface dark:bg-surface-dark rounded-2xl border border-border/30 dark:border-border-dark/30 p-4">
             <View className="flex-row items-center gap-2 mb-4">
               <CreditCard size={18} color={iconColor} />
               <Text className="font-medium text-foreground dark:text-foreground-dark">
-                Payment Method
+                Payment — M-Pesa
               </Text>
             </View>
-            <View className="flex-row items-center gap-3 bg-surface-alt dark:bg-surface-alt-dark rounded-xl p-3">
-              <AlertCircle size={18} color={mutedColor} />
-              <Text variant="muted" className="flex-1 leading-relaxed">
-                Payment processing coming soon. Orders will be confirmed
-                manually.
+
+            <View className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl p-3 mb-4">
+              <View className="flex-row items-center gap-2">
+                <Phone size={16} color="#16a34a" />
+                <Text className="text-sm text-green-800 dark:text-green-300 flex-1">
+                  You'll receive an M-Pesa STK Push prompt on your phone to confirm payment.
+                </Text>
+              </View>
+            </View>
+
+            <View>
+              <Text variant="caption" className="mb-1">
+                M-Pesa Phone Number *
               </Text>
+              <TextInput
+                value={mpesaPhone}
+                onChangeText={setMpesaPhone}
+                placeholder="+254712345678"
+                placeholderTextColor={isDark ? "#8C8078" : "#9C948A"}
+                keyboardType="phone-pad"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
+                  borderWidth: 1,
+                  borderColor: mpesaPhone && !isPhoneValid()
+                    ? "#dc2626"
+                    : isDark ? "rgba(139,121,107,0.3)" : "rgba(139,121,107,0.25)",
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  fontSize: 15,
+                  color: isDark ? "#F5EFE8" : "#2D2926",
+                }}
+              />
+              {mpesaPhone && !isPhoneValid() && (
+                <Text className="text-xs text-red-500 mt-1">
+                  Enter a valid Kenyan phone number (e.g., +254712345678)
+                </Text>
+              )}
             </View>
           </View>
 
@@ -512,9 +713,9 @@ export default function CheckoutScreen() {
       >
         <TouchableOpacity
           onPress={handlePlaceOrder}
-          disabled={isPlacingOrder || !isAddressValid()}
+          disabled={isPlacingOrder || !canPlaceOrder}
           className={`py-4 rounded-2xl flex-row items-center justify-center gap-2 ${
-            isAddressValid() && !isPlacingOrder
+            canPlaceOrder && !isPlacingOrder
               ? "bg-primary dark:bg-primary-dark"
               : "bg-primary/50 dark:bg-primary-dark/50"
           }`}
@@ -530,15 +731,17 @@ export default function CheckoutScreen() {
             <>
               <Check size={20} color={isDark ? "#1A1614" : "#FAF8F5"} />
               <Text className="text-base font-semibold text-primary-foreground dark:text-primary-dark-foreground">
-                Place Order ({formatPrice(total, currency)})
+                Pay with M-Pesa ({formatPrice(total, currency)})
               </Text>
             </>
           )}
         </TouchableOpacity>
 
-        {!isAddressValid() && (
+        {!canPlaceOrder && !isPlacingOrder && (
           <Text variant="caption" className="text-center mt-2">
-            Please fill in all required shipping fields
+            {!isAddressValid()
+              ? "Please fill in all required shipping fields"
+              : "Please enter a valid M-Pesa phone number"}
           </Text>
         )}
       </View>
