@@ -270,3 +270,38 @@ export const sendOnboardingLooksReadyNotification = internalAction({
   },
 });
 
+/**
+ * Send push notification when an order payment is confirmed
+ * Triggered from completeOrderPayment mutation
+ */
+export const sendOrderConfirmationNotification = internalAction({
+  args: {
+    userId: v.id('users'),
+    orderNumber: v.string(),
+  },
+  returns: v.null(),
+  handler: async (
+    ctx: ActionCtx,
+    args: { userId: Id<'users'>; orderNumber: string }
+  ): Promise<null> => {
+    const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
+      userId: args.userId,
+    });
+
+    if (tokens.length === 0) {
+      console.log(`[PUSH] No push tokens for user ${args.userId}, skipping order confirmation notification`);
+      return null;
+    }
+
+    const title = '🛍️ Order Confirmed!';
+    const body = `Your order ${args.orderNumber} has been confirmed! We'll start processing it right away.`;
+
+    await sendExpoPushNotifications(tokens, title, body, {
+      type: 'order_confirmed',
+      orderNumber: args.orderNumber,
+    }, 'orders');
+
+    return null;
+  },
+});
+

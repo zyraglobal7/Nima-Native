@@ -4,7 +4,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 
 // Detect Expo Go where push notifications native module is unavailable (SDK 53+)
 const isExpoGo = Constants.executionEnvironment === "storeClient";
@@ -156,7 +156,6 @@ export function usePushNotifications() {
     useRef<import("expo-notifications").EventSubscription>();
   const responseListener =
     useRef<import("expo-notifications").EventSubscription>();
-  const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
 
   const savePushToken = useMutation(api.notifications.mutations.savePushToken);
@@ -228,7 +227,7 @@ export function usePushNotifications() {
         responseListener.current.remove();
       }
     };
-  }, [router]);
+  }, []);
 
   return {
     expoPushToken,

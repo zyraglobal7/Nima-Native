@@ -7,7 +7,7 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { Image } from "expo-image";
 import {
   SafeAreaView,
@@ -32,7 +32,6 @@ const TABS: { id: TabId; label: string; icon: typeof Sparkles }[] = [
 ];
 
 export default function LookbooksScreen() {
-  const router = useRouter();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();

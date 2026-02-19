@@ -16,6 +16,10 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nima.app",
+      associatedDomains: [
+        "applinks:www.shopnima.ai",
+        "applinks:shopnima.ai",
+      ],
     },
     android: {
       googleServicesFile:
@@ -26,6 +30,21 @@ export default {
       },
       edgeToEdgeEnabled: true,
       package: "com.nima.app",
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/look/" },
+            { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/product/" },
+            { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/lookbook/" },
+            { scheme: "https", host: "shopnima.ai", pathPrefix: "/look/" },
+            { scheme: "https", host: "shopnima.ai", pathPrefix: "/product/" },
+            { scheme: "https", host: "shopnima.ai", pathPrefix: "/lookbook/" },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
     },
     web: {
       favicon: "./assets/favicon.png",
