@@ -41,7 +41,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
 import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
-import { UserPickerModal } from "@/components/ui/UserPickerModal";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -65,8 +64,8 @@ export default function LookDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRecreating, setIsRecreating] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showUserPicker, setShowUserPicker] = useState(false);
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["60%", "80%"], []);
@@ -126,6 +125,7 @@ export default function LookDetailScreen() {
   const addToCart = useMutation(api.cart.mutations.addToCart);
   const retryGeneration = useMutation(api.looks.mutations.retryLookGeneration);
   const deleteLook = useMutation(api.looks.mutations.deleteLookByUser);
+  const recreateLook = useMutation(api.looks.mutations.recreateLook);
 
   // Saved status for lookbook modal
   const savedStatus = useQuery(
@@ -258,6 +258,23 @@ export default function LookDetailScreen() {
         },
       ],
     );
+  };
+
+  const handleRecreateLook = async () => {
+    if (!lookInternalId || isRecreating) return;
+    setIsRecreating(true);
+    try {
+      const result = await recreateLook({ lookId: lookInternalId });
+      if (result.success && result.publicId) {
+        router.push(`/look/${result.publicId}` as any);
+      } else {
+        Alert.alert("Error", result.error || "Failed to recreate look");
+      }
+    } catch {
+      Alert.alert("Error", "Failed to recreate look");
+    } finally {
+      setIsRecreating(false);
+    }
   };
 
   /* ─── Loading / Error states ─── */
@@ -616,6 +633,8 @@ export default function LookDetailScreen() {
               </View>
             )}
           </View>
+
+          
         </Animated.View>
       </ScrollView>
 
@@ -625,6 +644,51 @@ export default function LookDetailScreen() {
           style={{ paddingBottom: insets.bottom + 8 }}
           className="absolute bottom-0 left-0 right-0 bg-background/95 dark:bg-background-dark/95 border-t border-border dark:border-border-dark px-4 pt-3"
         >
+          {/* Recreate Look button - only for non-owners */}
+          {!isOwner && (
+            <TouchableOpacity
+              onPress={handleRecreateLook}
+              disabled={isRecreating}
+              className={`h-12 rounded-full items-center justify-center flex-row gap-2 mb-2.5 border ${
+                isRecreating
+                  ? "opacity-60"
+                  : ""
+              }`}
+              style={{
+                backgroundColor: isDark ? "rgba(201,160,122,0.12)" : "rgba(166,124,82,0.08)",
+                borderColor: isDark ? "rgba(201,160,122,0.3)" : "rgba(166,124,82,0.2)",
+              }}
+            >
+              {isRecreating ? (
+                <>
+                  <ActivityIndicator
+                    size="small"
+                    color={isDark ? "#C9A07A" : "#A67C52"}
+                  />
+                  <Text
+                    className="font-medium"
+                    style={{ color: isDark ? "#C9A07A" : "#A67C52" }}
+                  >
+                    Recreating...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <RefreshCw
+                    size={18}
+                    color={isDark ? "#C9A07A" : "#A67C52"}
+                  />
+                  <Text
+                    className="font-medium"
+                    style={{ color: isDark ? "#C9A07A" : "#A67C52" }}
+                  >
+                    Recreate Look
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
           <View className="flex-row gap-3">
             {/* Add to Cart */}
             <TouchableOpacity
@@ -803,17 +867,7 @@ export default function LookDetailScreen() {
         url={shareUrl}
         title={shareTitle}
         lookId={lookInternalId}
-        onShareViaDM={() => setShowUserPicker(true)}
       />
-
-      {/* User Picker for DM */}
-      {lookInternalId && (
-        <UserPickerModal
-          visible={showUserPicker}
-          onClose={() => setShowUserPicker(false)}
-          lookId={lookInternalId}
-        />
-      )}
     </View>
   );
 }

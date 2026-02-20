@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Nima",
     slug: "nima-ai",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
@@ -16,6 +16,9 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nima.app",
+      "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    },
       associatedDomains: [
         "applinks:www.shopnima.ai",
         "applinks:shopnima.ai",
@@ -58,7 +61,7 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/icon.png",
+          icon: "./assets/mascott.png",
           color: "#5C2A33",
           sounds: ["./assets/confident_543.mp3"],
         },

@@ -232,7 +232,11 @@ export default function DiscoverScreen() {
       (item) =>
         item.name.toLowerCase().includes(query) ||
         item.brand?.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query),
+        item.category.toLowerCase().includes(query) ||
+        item.colors.some((c) => c.toLowerCase().includes(query)) ||
+        item.material?.toLowerCase().includes(query) ||
+        item.occasion?.some((o) => o.toLowerCase().includes(query)) ||
+        item.tags?.some((t) => t.toLowerCase().includes(query)),
     );
   }, [accumulatedItems, apparelSearchQuery]);
 
@@ -298,6 +302,9 @@ export default function DiscoverScreen() {
         colors: item.colors,
         primaryImageUrl: item.primaryImageUrl ?? undefined,
         isFeatured: item.isFeatured,
+        material: item.material,
+        occasion: item.occasion,
+        tags: item.tags,
       }));
 
       setAccumulatedItems((prev) => {
@@ -481,7 +488,7 @@ export default function DiscoverScreen() {
             <ApparelSearchBar
               value={apparelSearchQuery}
               onChange={setApparelSearchQuery}
-              placeholder="Search items by name, brand, or category..."
+              placeholder="Search by name, brand, category, color, material, occasion..."
             />
 
             {/* Category Carousel */}

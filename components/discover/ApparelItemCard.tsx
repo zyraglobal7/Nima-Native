@@ -19,6 +19,9 @@ export interface ApparelItem {
   colors: string[];
   primaryImageUrl?: string;
   isFeatured?: boolean;
+  material?: string;
+  occasion?: string[];
+  tags?: string[];
 }
 
 interface ApparelItemCardProps {

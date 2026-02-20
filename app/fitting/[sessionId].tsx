@@ -18,7 +18,6 @@ import {
 import { ProductItem, type Product } from "@/components/fitting/ProductItem";
 import { Sparkles, ArrowLeft, Share2 } from "lucide-react-native";
 import { ShareOptionsModal } from "@/components/ui/ShareOptionsModal";
-import { UserPickerModal } from "@/components/ui/UserPickerModal";
 import { LinearGradient }  from "expo-linear-gradient";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useTheme } from "@/lib/contexts/ThemeContext";
@@ -34,7 +33,6 @@ export default function FittingRoomScreen() {
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
   const [savedProducts, setSavedProducts] = useState<Set<string>>(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showUserPicker, setShowUserPicker] = useState(false);
 
   // Parse look IDs from sessionId (comma-separated)
   const lookIds = useMemo(() => {
@@ -391,17 +389,7 @@ export default function FittingRoomScreen() {
         url={shareUrl}
         title={shareTitle}
         lookId={lookIds[currentLookIndex]}
-        onShareViaDM={() => setShowUserPicker(true)}
       />
-
-      {/* User Picker for DM */}
-      {lookIds[currentLookIndex] && (
-        <UserPickerModal
-          visible={showUserPicker}
-          onClose={() => setShowUserPicker(false)}
-          lookId={lookIds[currentLookIndex]}
-        />
-      )}
     </View>
   );
 }
