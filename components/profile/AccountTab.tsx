@@ -9,6 +9,7 @@ import {
   Modal,
   SafeAreaView,
   Alert,
+  Linking,
 } from "react-native";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -192,6 +193,41 @@ export function AccountTab() {
           </View>
         </View>
         <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+      </TouchableOpacity>
+
+      {/* Delete account link — subtle, at bottom */}
+      <TouchableOpacity
+        onPress={() => {
+          Alert.alert(
+            "Delete Account",
+            "This will open your email client to send an account deletion request. Are you sure?",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Continue",
+                style: "destructive",
+                onPress: () => {
+                  const email = encodeURIComponent(currentUser.email || "");
+                  const subject = encodeURIComponent("Account Deletion Request");
+                  const body = encodeURIComponent(
+                    `Hi,\n\nI would like to request deletion of my account and all associated data.\n\nEmail: ${currentUser.email || ""}\n\nThank you.`
+                  );
+                  Linking.openURL(
+                    `mailto:support@nimaai.com?subject=${subject}&body=${body}`
+                  );
+                },
+              },
+            ]
+          );
+        }}
+        className="mt-8 items-center py-3"
+      >
+        <Text
+          className="text-xs font-sans"
+          style={{ color: isDark ? "#8C8078" : "#9C948A" }}
+        >
+          Delete my account
+        </Text>
       </TouchableOpacity>
 
       {/* Friends Modal */}
