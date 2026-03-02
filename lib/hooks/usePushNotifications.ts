@@ -4,10 +4,15 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 
 // Detect Expo Go where push notifications native module is unavailable (SDK 53+)
 const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+let Haptics: typeof import("expo-haptics") | null = null;
+try {
+  Haptics = require("expo-haptics");
+} catch {}
 
 let Notifications: typeof import("expo-notifications") | null = null;
 if (!isExpoGo) {
@@ -151,7 +156,6 @@ export function usePushNotifications() {
     useRef<import("expo-notifications").EventSubscription>();
   const responseListener =
     useRef<import("expo-notifications").EventSubscription>();
-  const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
 
   const savePushToken = useMutation(api.notifications.mutations.savePushToken);
@@ -189,6 +193,10 @@ export function usePushNotifications() {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notif) => {
         setNotification(notif);
+        const data = notif.request.content.data;
+        if (data?.type === "message_received" && Haptics) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
       });
 
     // Listen for user tapping on a notification
@@ -219,7 +227,7 @@ export function usePushNotifications() {
         responseListener.current.remove();
       }
     };
-  }, [router]);
+  }, []);
 
   return {
     expoPushToken,

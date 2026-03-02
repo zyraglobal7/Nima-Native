@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Switch, TouchableOpacity, ScrollView } from "react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import {
@@ -11,34 +11,46 @@ import {
   LogOut,
   ShoppingBag,
 } from "lucide-react-native";
-import { useRouter } from "expo-router";
-import { signOut } from "@/lib/auth";
-import { useQuery } from "convex/react";
+import { router } from "expo-router";
+import { callLogout } from "@/lib/auth";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
+import { CreditsModal } from "@/components/credits/CreditsModal";
+
+const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 export function SettingsTab() {
   const { isDark, setTheme } = useTheme();
-  const router = useRouter();
+  const [creditsModalVisible, setCreditsModalVisible] = useState(false);
   const currentUser = useQuery(api.users.queries.getCurrentUser);
+  const removePushToken = useMutation(api.notifications.mutations.removePushToken);
 
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   const handleSignOut = async () => {
-    await signOut();
+    // Remove push token from Convex so user stops receiving notifications
+    if (!isExpoGo) {
+      try {
+        const Notifications = require("expo-notifications");
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId,
+        });
+        await removePushToken({ token: tokenData.data });
+      } catch {
+        // Non-critical — proceed with logout even if token removal fails
+      }
+    }
 
-    // On web, we need a page reload to clear Convex state
-    // On native, router.replace works fine after token is cleared
+    await callLogout();
+
     if (Platform.OS === "web") {
-      // Force a full page reload on web to clear all state
       if (typeof window !== "undefined") {
         window.location.href = "/";
       }
     } else {
-      // On native, small delay to ensure Convex detects the token change
-      setTimeout(() => {
-        router.replace("/");
-      }, 100);
+      router.replace("/");
     }
   };
 
@@ -48,7 +60,7 @@ export function SettingsTab() {
       showsVerticalScrollIndicator={false}
     >
       {/* Settings Sections */}
-      <View className="space-y-6 pb-20">
+      <View className="gap-6 pb-20">
         {/* Appearance */}
         <View>
           <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark mb-3">
@@ -56,11 +68,11 @@ export function SettingsTab() {
           </Text>
           <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark">
             <View className="flex-row items-center justify-between p-4">
-              <View className="flex-row items-center space-x-3">
+              <View className="flex-row items-center gap-3">
                 {isDark ? (
-                  <Moon size={20} className="text-foreground dark:text-foreground-dark" />
+                  <Moon size={20} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 ) : (
-                  <Sun size={20} className="text-foreground dark:text-foreground-dark" />
+                  <Sun size={20} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 )}
                 <Text className="text-base text-foreground dark:text-foreground-dark font-sans">
                   Dark Mode
@@ -86,8 +98,8 @@ export function SettingsTab() {
               onPress={() => router.push("/profile/discarded-looks")}
               className="flex-row items-center justify-between p-4"
             >
-              <View className="flex-row items-center space-x-3 flex-1">
-                <Trash2 size={24} className="text-foreground dark:text-foreground-dark" />
+              <View className="flex-row items-center gap-3 flex-1">
+                <Trash2 size={24} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 <View>
                   <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     Discarded Looks
@@ -97,15 +109,15 @@ export function SettingsTab() {
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+              <ChevronRight size={20} color={isDark ? "#8C8078" : "#9C948A"} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.push("/orders")}
               className="flex-row items-center justify-between p-4"
             >
-              <View className="flex-row items-center space-x-3 flex-1">
-                <ShoppingBag size={24} className="text-foreground dark:text-foreground-dark" />
+              <View className="flex-row items-center gap-3 flex-1">
+                <ShoppingBag size={24} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 <View>
                   <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     My Orders
@@ -115,7 +127,7 @@ export function SettingsTab() {
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+              <ChevronRight size={20} color={isDark ? "#8C8078" : "#9C948A"} />
             </TouchableOpacity>
           </View>
         </View>
@@ -127,8 +139,8 @@ export function SettingsTab() {
           </Text>
           <View className="bg-surface dark:bg-surface-dark rounded-xl overflow-hidden border border-border dark:border-border-dark divide-y divide-border dark:divide-border-dark">
             <TouchableOpacity className="flex-row items-center justify-between p-4">
-              <View className="flex-row items-center space-x-3 flex-1">
-                <Mail size={24} className="text-foreground dark:text-foreground-dark" />
+              <View className="flex-row items-center gap-3 flex-1">
+                <Mail size={24} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 <View>
                   <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     Change Email
@@ -138,12 +150,12 @@ export function SettingsTab() {
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+              <ChevronRight size={20} color={isDark ? "#8C8078" : "#9C948A"} />
             </TouchableOpacity>
 
             <TouchableOpacity className="flex-row items-center justify-between p-4">
-              <View className="flex-row items-center space-x-3 flex-1">
-                <Lock size={24} className="text-foreground dark:text-foreground-dark" />
+              <View className="flex-row items-center gap-3 flex-1">
+                <Lock size={24} color={isDark ? "#F5F0E8" : "#2D2926"} />
                 <View>
                   <Text className="text-base font-medium text-foreground dark:text-foreground-dark font-serif">
                     Change Password
@@ -153,15 +165,15 @@ export function SettingsTab() {
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+              <ChevronRight size={20} color={isDark ? "#8C8078" : "#9C948A"} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleSignOut}
               className="flex-row items-center justify-between p-4"
             >
-              <View className="flex-row items-center space-x-3 flex-1">
-                <LogOut size={24} className="text-destructive dark:text-destructive-dark" />
+              <View className="flex-row items-center gap-3 flex-1">
+                <LogOut size={24} color={isDark ? "#D4807A" : "#B85C5C"} />
                 <View>
                   <Text className="text-base font-medium text-destructive dark:text-destructive-dark font-serif">
                     Log Out
@@ -171,7 +183,7 @@ export function SettingsTab() {
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} className="text-muted-foreground dark:text-muted-dark-foreground" />
+              <ChevronRight size={20} color={isDark ? "#8C8078" : "#9C948A"} />
             </TouchableOpacity>
           </View>
         </View>
@@ -195,7 +207,10 @@ export function SettingsTab() {
             today
           </Text>
           {currentUser?.subscriptionTier === "free" && (
-            <TouchableOpacity className="mt-3 py-2 bg-background dark:bg-background-dark border border-primary dark:border-primary-dark rounded-lg items-center">
+            <TouchableOpacity
+              onPress={() => setCreditsModalVisible(true)}
+              className="mt-3 py-2 bg-background dark:bg-background-dark border border-primary dark:border-primary-dark rounded-lg items-center"
+            >
               <Text className="text-primary dark:text-primary-dark font-medium font-sans">
                 Upgrade to Style Pass
               </Text>
@@ -203,6 +218,11 @@ export function SettingsTab() {
           )}
         </View>
       </View>
+
+      <CreditsModal
+        visible={creditsModalVisible}
+        onClose={() => setCreditsModalVisible(false)}
+      />
     </ScrollView>
   );
 }

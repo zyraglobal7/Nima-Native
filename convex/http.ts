@@ -298,22 +298,42 @@ http.route({
         status === 'cancelled' ||
         status === 'rejected';
 
+      // Route to the correct handler based on merchant transaction ID prefix
+      const isOrderPayment = (merchantTransactionId as string).startsWith('nima_ord_');
+      const isCreditPurchase = (merchantTransactionId as string).startsWith('nima_cr_');
+
       if (isCompleted) {
         console.log(`[FINGO WEBHOOK] Payment completed: ${merchantTransactionId}`);
-        await ctx.runMutation(internal.credits.mutations.completePurchase, {
-          merchantTransactionId: merchantTransactionId as string,
-          fingoTransactionId: fingoTransactionId as string,
-        });
+        if (isOrderPayment) {
+          await ctx.runMutation(internal.orders.mutations.completeOrderPayment, {
+            merchantTransactionId: merchantTransactionId as string,
+            fingoTransactionId: fingoTransactionId as string,
+          });
+        } else {
+          // Default to credit purchase (backward compatible)
+          await ctx.runMutation(internal.credits.mutations.completePurchase, {
+            merchantTransactionId: merchantTransactionId as string,
+            fingoTransactionId: fingoTransactionId as string,
+          });
+        }
       } else if (isFailed) {
         const reason = (data.failureReason || payload.failureReason || 'Payment failed').toString();
         console.log(`[FINGO WEBHOOK] Payment failed: ${merchantTransactionId} - ${reason}`);
-        await ctx.runMutation(internal.credits.mutations.failPurchase, {
-          merchantTransactionId: merchantTransactionId as string,
-          reason,
-        });
+        if (isOrderPayment) {
+          await ctx.runMutation(internal.orders.mutations.failOrderPayment, {
+            merchantTransactionId: merchantTransactionId as string,
+            reason,
+          });
+        } else {
+          // Default to credit purchase (backward compatible)
+          await ctx.runMutation(internal.credits.mutations.failPurchase, {
+            merchantTransactionId: merchantTransactionId as string,
+            reason,
+          });
+        }
       } else {
         // Unknown event type - log it but acknowledge
-        console.log(`[FINGO WEBHOOK] Unhandled event type: ${eventType}, status: ${status}`);
+        console.log(`[FINGO WEBHOOK] Unhandled event type: ${eventType}, status: ${status}, isOrder: ${isOrderPayment}, isCredit: ${isCreditPurchase}`);
       }
 
       return addCorsHeaders(

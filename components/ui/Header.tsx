@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, SafeAreaView, Platform } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { usePathname, router } from "expo-router";
 import {
   Sparkles,
   ArrowLeft,
@@ -17,7 +17,6 @@ import { api } from "@/convex/_generated/api";
 
 export function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const { isDark } = useTheme();
 
   // Define root routes that show the Logo instead of Back button
@@ -34,10 +33,15 @@ export function Header() {
   const isAskPage = pathname === "/ask";
   const iconColor = isDark ? "#FAF8F5" : "#1A1614";
 
-  const unreadCount = useQuery(
+  const unreadActivity = useQuery(
     api.lookInteractions.queries.getUnreadActivityCount,
   );
-  const hasUnread = (unreadCount ?? 0) > 0;
+  const unreadMessages = useQuery(
+    api.directMessages.queries.getUnreadMessageCount,
+  );
+  const cartCount = useQuery(api.cart.queries.getCartCount);
+
+  const hasUnread = (unreadActivity ?? 0) > 0;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -125,14 +129,76 @@ export function Header() {
                 className="p-2 -mr-2 rounded-full active:bg-muted/10"
                 onPress={() => router.push("/messages")}
               >
-                <MessageSquare size={24} color={iconColor} />
+                <View>
+                  <MessageSquare size={24} color={iconColor} />
+                  {(unreadMessages ?? 0) > 0 && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -4,
+                        right: -4,
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        backgroundColor: isDark ? "#C9A07A" : "#5C2A33",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#1A1614" : "#FAF8F5",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        paddingHorizontal: 3,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "600",
+                          color: isDark ? "#1A1614" : "#FAF8F5",
+                          lineHeight: 13,
+                        }}
+                      >
+                        {(unreadMessages ?? 0) > 9 ? "9+" : unreadMessages}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="p-2 -mr-2 rounded-full active:bg-muted/10"
                 onPress={() => router.push("/cart")}
               >
-                <ShoppingBag size={24} color={iconColor} />
+                <View>
+                  <ShoppingBag size={24} color={iconColor} />
+                  {(cartCount ?? 0) > 0 && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -4,
+                        right: -4,
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        backgroundColor: isDark ? "#C9A07A" : "#5C2A33",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#1A1614" : "#FAF8F5",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        paddingHorizontal: 3,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "600",
+                          color: isDark ? "#1A1614" : "#FAF8F5",
+                          lineHeight: 13,
+                        }}
+                      >
+                        {(cartCount ?? 0) > 9 ? "9+" : cartCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </TouchableOpacity>
             </>
           )}

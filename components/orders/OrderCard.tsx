@@ -1,7 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
+import { Text } from "@/components/ui/Text";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 interface OrderCardProps {
   order: {
@@ -17,27 +19,12 @@ interface OrderCardProps {
 
 export function OrderCard({ order }: OrderCardProps) {
   const router = useRouter();
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "delivered":
-        return "bg-primary text-primary-foreground";
-      case "processing":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
-      case "shipped":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
-      default:
-        return "bg-secondary text-secondary-foreground";
-    }
-  };
+  const { isDark } = useTheme();
 
   const getStatusTextColor = (status: string) => {
-    // Helper for native since we can't use text-primary-foreground class easily on native text sometimes inside view
     switch (status) {
       case "delivered":
-        return "text-primary-foreground";
+        return "text-primary-foreground dark:text-primary-dark-foreground";
       case "processing":
         return "text-blue-800 dark:text-blue-100";
       case "shipped":
@@ -45,14 +32,14 @@ export function OrderCard({ order }: OrderCardProps) {
       case "cancelled":
         return "text-red-800 dark:text-red-100";
       default:
-        return "text-secondary-foreground";
+        return "text-foreground dark:text-foreground-dark";
     }
   };
 
   const getStatusBgColor = (status: string) => {
     switch (status) {
       case "delivered":
-        return "bg-primary";
+        return "bg-primary dark:bg-primary-dark";
       case "processing":
         return "bg-blue-100 dark:bg-blue-900";
       case "shipped":
@@ -60,7 +47,7 @@ export function OrderCard({ order }: OrderCardProps) {
       case "cancelled":
         return "bg-red-100 dark:bg-red-900";
       default:
-        return "bg-secondary";
+        return "bg-surface-alt dark:bg-surface-alt-dark";
     }
   };
 
@@ -72,11 +59,11 @@ export function OrderCard({ order }: OrderCardProps) {
   return (
     <TouchableOpacity
       onPress={() => router.push(`/orders/${order.orderNumber}`)}
-      className="bg-surface border border-border rounded-xl p-4 mb-3 active:bg-surface-alt"
+      className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-4 mb-3 active:bg-surface-alt dark:active:bg-surface-alt-dark"
     >
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-2">
-          <Text className="font-serif font-bold text-lg text-foreground">
+          <Text className="font-serif font-bold text-lg text-foreground dark:text-foreground-dark">
             {order.orderNumber}
           </Text>
           <View
@@ -93,24 +80,23 @@ export function OrderCard({ order }: OrderCardProps) {
 
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-sm text-muted-foreground mb-1">
+          <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground mb-1">
             {new Date(order.createdAt).toLocaleDateString()}
           </Text>
           <View className="flex-row items-center gap-3">
-            <Text className="text-sm text-foreground font-medium">
+            <Text className="text-sm text-foreground dark:text-foreground-dark font-medium">
               {order.itemCount} item{order.itemCount !== 1 ? "s" : ""}
             </Text>
-            <Text className="text-sm text-foreground font-bold">
+            <Text className="text-sm text-foreground dark:text-foreground-dark font-bold">
               {formattedPrice}
             </Text>
           </View>
         </View>
 
-        <View className="p-2 bg-secondary/50 rounded-full">
+        <View className="p-2 bg-surface-alt/50 dark:bg-surface-alt-dark/50 rounded-full">
           <ChevronRight
             size={16}
-            className="text-muted-foreground"
-            color="#9CA3AF"
+            color={isDark ? "#8C8078" : "#9C948A"}
           />
         </View>
       </View>

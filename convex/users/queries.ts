@@ -140,6 +140,16 @@ export const getCurrentUser = query({
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
+      savedShippingAddress: v.optional(v.object({
+        fullName: v.string(),
+        addressLine1: v.string(),
+        addressLine2: v.optional(v.string()),
+        city: v.string(),
+        state: v.optional(v.string()),
+        postalCode: v.string(),
+        country: v.string(),
+        phone: v.string(),
+      })),
       createdAt: v.number(),
       updatedAt: v.number(),
     }),
@@ -162,7 +172,21 @@ export const getCurrentUser = query({
       .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', workosUserId))
       .unique();
 
-    return user;
+    if (!user) {
+      return null;
+    }
+
+    // Resolve profile image URL if we have a storage ID
+    let profileImageUrl = user.profileImageUrl;
+    if (user.profileImageId && !profileImageUrl) {
+      const url = await ctx.storage.getUrl(user.profileImageId);
+      profileImageUrl = url ?? undefined;
+    }
+
+    return {
+      ...user,
+      profileImageUrl,
+    };
   },
 });
 
@@ -211,6 +235,16 @@ export const getUser = query({
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
+      savedShippingAddress: v.optional(v.object({
+        fullName: v.string(),
+        addressLine1: v.string(),
+        addressLine2: v.optional(v.string()),
+        city: v.string(),
+        state: v.optional(v.string()),
+        postalCode: v.string(),
+        country: v.string(),
+        phone: v.string(),
+      })),
       createdAt: v.number(),
       updatedAt: v.number(),
     }),
@@ -285,6 +319,16 @@ export const getUserByWorkosId = query({
       onboardingCompleted: v.boolean(),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
+      savedShippingAddress: v.optional(v.object({
+        fullName: v.string(),
+        addressLine1: v.string(),
+        addressLine2: v.optional(v.string()),
+        city: v.string(),
+        state: v.optional(v.string()),
+        postalCode: v.string(),
+        country: v.string(),
+        phone: v.string(),
+      })),
       createdAt: v.number(),
       updatedAt: v.number(),
     }),

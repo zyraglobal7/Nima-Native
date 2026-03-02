@@ -75,16 +75,6 @@ export default function OrderDetailsScreen() {
             color={isDark ? "white" : "black"}
           />
         </TouchableOpacity>
-        <View>
-          <Text className="text-lg font-serif font-medium text-foreground">
-            Order #{orderNumber}
-          </Text>
-          {order && (
-            <Text className="text-xs text-muted-foreground">
-              {new Date(order.createdAt).toLocaleDateString()}
-            </Text>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -122,8 +112,8 @@ export default function OrderDetailsScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Stack.Screen options={{ headerShown: false }} />
-      {renderHeader()}
+      {/* <Stack.Screen options={{ headerShown: false }} />
+      {renderHeader()} */}
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {/* Status Banner */}
@@ -158,7 +148,16 @@ export default function OrderDetailsScreen() {
               Order Summary
             </Text>
           </View>
-
+          <View>
+          <Text className="text-lg font-serif font-medium text-foreground">
+            Order #{orderNumber}
+          </Text>
+          {order && (
+            <Text className="text-xs text-muted-foreground">
+              {new Date(order.createdAt).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
           <View className="space-y-3">
             <View className="flex-row justify-between">
               <Text className="text-muted-foreground">Subtotal</Text>
@@ -206,7 +205,7 @@ export default function OrderDetailsScreen() {
           <Text className="text-muted-foreground">
             {order.shippingAddress.addressLine1}
           </Text>
-          {order.shippingAddress.addressLine2 && (
+          {!!order.shippingAddress.addressLine2 && (
             <Text className="text-muted-foreground">
               {order.shippingAddress.addressLine2}
             </Text>

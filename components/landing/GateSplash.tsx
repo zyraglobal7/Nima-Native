@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ChatBubble } from "./ChatBubble";
 import { useRouter } from "expo-router";
 import { launchWorkOSAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 interface GateSplashProps {
   onGetStarted?: () => void;
@@ -13,6 +14,7 @@ interface GateSplashProps {
 
 export function GateSplash({ onGetStarted }: GateSplashProps) {
   const router = useRouter();
+  const { isDark } = useTheme();
 
   // Animations
   const sunAnim = useRef(new Animated.Value(0)).current;
@@ -69,8 +71,11 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
     try {
       const result = await launchWorkOSAuth("sign-in");
       if (result) {
-        // Auth successful — navigate to main app
-        router.replace("/(tabs)/discover");
+        // Auth state is already updated via callLogin() inside launchWorkOSAuth.
+        // Navigate to "/" so index.tsx can run onboarding checks and redirect
+        // to the right screen (discover or onboarding) with a fully authenticated
+        // Convex client.
+        router.replace("/");
       }
       // If result is null, user cancelled — do nothing
     } catch (err) {
@@ -83,32 +88,31 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
       {/* Animated Background Layers */}
       {/* We use absolute positioned views with gradients to simulate the CSS radial gradients */}
 
-      {/* Secondary Gradient Orb (Bottom/Rising) */}
-      {/* Secondary Gradient Orb (Bottom/Rising) */}
+      {/* Subtle animated gradient layer */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: sunOpacity }]}>
-        {/* Layer 1: Deep Burgundy Glow at very bottom */}
+        {/* Layer 1: Subtle warm glow at bottom */}
         <LinearGradient
-          colors={["transparent", "rgba(92, 42, 51, 0.2)"]} // Primary
+          colors={
+            isDark
+              ? ["transparent", "rgba(201, 160, 122, 0.08)"]
+              : ["transparent", "rgba(92, 42, 51, 0.12)"]
+          }
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0.3 }}
           end={{ x: 0.5, y: 1 }}
         />
-        {/* Layer 2: Camel/Gold Rising Sun Effect */}
+        {/* Layer 2: Rising warmth effect */}
         <LinearGradient
-          colors={[
-            "transparent",
-            "rgba(166, 124, 82, 0.15)", // Secondary
-            "rgba(201, 160, 122, 0.2)", // Rose Gold
-          ]}
+          colors={
+            isDark
+              ? ["transparent", "rgba(166, 107, 115, 0.06)", "rgba(201, 160, 122, 0.1)"]
+              : ["transparent", "rgba(166, 124, 82, 0.1)", "rgba(201, 160, 122, 0.15)"]
+          }
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
         />
       </Animated.View>
-
-      {/* Ambient Orbs */}
-      <View className="absolute top-1/4 -left-20 w-64 h-64 rounded-full bg-secondary opacity-10 blur-3xl" />
-      <View className="absolute bottom-1/4 -right-20 w-48 h-48 rounded-full bg-primary opacity-10 blur-3xl" />
 
       {/* Content Container */}
       <View className="flex-1 items-center justify-center px-6 py-12">
@@ -129,7 +133,7 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
             >
               Nima
             </Text>
-            <Text className="text-sm uppercase tracking-[0.3em] text-muted-foreground mt-2 font-light">
+            <Text className="text-sm uppercase tracking-[0.3em] text-muted-foreground dark:text-muted-dark-foreground mt-2 font-light">
               AI Stylist
             </Text>
           </View>
@@ -141,12 +145,12 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
 
           {/* Tagline */}
           <View className="items-center mb-12 space-y-3">
-            <Text className="text-center leading-8 text-xl font-serif font-medium text-foreground">
+            <Text className="text-center leading-8 text-xl font-serif font-medium text-foreground dark:text-foreground-dark">
               Your personal AI stylist.
             </Text>
             <Text
               variant="large"
-              className="text-muted-foreground font-light text-center"
+              className="text-muted-foreground dark:text-muted-dark-foreground font-light text-center"
             >
               See yourself in every outfit.
             </Text>
@@ -158,15 +162,15 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
               size="lg"
               label="Get Started"
               onPress={onGetStarted}
-              className="w-full shadow-lg shadow-primary/20"
+              className="w-full dark:bg-primary-dark"
             />
 
             <View className="flex-row justify-center mt-6">
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm">
                 Already a member?{" "}
               </Text>
               <Text
-                className="text-secondary text-sm font-medium underline"
+                className="text-secondary dark:text-secondary-dark text-sm font-medium underline"
                 onPress={handleSignIn}
               >
                 Sign in
@@ -178,7 +182,11 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
 
       {/* Bottom Fade */}
       <LinearGradient
-        colors={["transparent", "rgba(237, 230, 220, 0.3)"]} // surface-alt with opacity
+        colors={
+          isDark
+            ? ["transparent", "rgba(26, 22, 20, 0.4)"]
+            : ["transparent", "rgba(237, 230, 220, 0.3)"]
+        }
         style={{
           position: "absolute",
           bottom: 0,

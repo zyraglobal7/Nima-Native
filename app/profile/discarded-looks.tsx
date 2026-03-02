@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -10,6 +9,7 @@ import { useRouter, Stack } from "expo-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Text } from "@/components/ui/Text";
 import { DiscardedLookCard } from "@/components/profile/DiscardedLookCard";
 import { ArrowLeft, Trash2 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,6 +30,9 @@ export default function DiscardedLooksScreen() {
   const [restoringLookId, setRestoringLookId] = useState<Id<"looks"> | null>(
     null,
   );
+
+  const iconColor = isDark ? "#C9A07A" : "#5C2A33";
+  const mutedColor = isDark ? "#8C8078" : "#9C948A";
 
   const handleRestore = async (lookId: Id<"looks">) => {
     setRestoringLookId(lookId);
@@ -63,58 +66,56 @@ export default function DiscardedLooksScreen() {
   const renderHeader = () => (
     <View
       style={{ paddingTop: insets.top }}
-      className="bg-background/95 border-b border-border z-10"
+      className="bg-background/95 dark:bg-background-dark/95 border-b border-border dark:border-border-dark z-10"
     >
       <View className="px-4 py-3 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="p-2 -ml-2 rounded-full active:bg-surface-alt"
+            className="p-2 -ml-2 rounded-full active:bg-surface-alt dark:active:bg-surface-alt-dark"
           >
             <ArrowLeft
               size={24}
-              className="text-foreground"
-              color={isDark ? "white" : "black"}
+              color={isDark ? "#F5EFE8" : "#2D2926"}
             />
           </TouchableOpacity>
-          <Text className="text-lg font-serif font-medium text-foreground">
+          <Text className="text-lg font-serif font-medium text-foreground dark:text-foreground-dark">
             Discarded Looks
           </Text>
         </View>
-        <Trash2 size={24} className="text-muted-foreground" color="#9CA3AF" />
+        <Trash2 size={24} color={mutedColor} />
       </View>
     </View>
   );
 
   if (discardedLooks === undefined) {
     return (
-      <View className="flex-1 bg-background">
+      <View className="flex-1 bg-background dark:bg-background-dark">
         {renderHeader()}
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#C08D5D" />
+          <ActivityIndicator size="large" color={iconColor} />
         </View>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-background dark:bg-background-dark">
       <Stack.Screen options={{ headerShown: false }} />
       {renderHeader()}
 
       {discardedLooks.length === 0 ? (
         <View className="flex-1 items-center justify-center p-8">
-          <View className="w-20 h-20 rounded-full bg-surface-alt items-center justify-center mb-6">
+          <View className="w-20 h-20 rounded-full bg-surface-alt dark:bg-surface-alt-dark items-center justify-center mb-6">
             <Trash2
               size={40}
-              className="text-muted-foreground/50"
-              color="#9CA3AF"
+              color={mutedColor}
             />
           </View>
-          <Text className="text-xl font-medium text-foreground mb-2">
+          <Text className="text-xl font-medium text-foreground dark:text-foreground-dark mb-2">
             No Discarded Looks
           </Text>
-          <Text className="text-center text-muted-foreground mb-8">
+          <Text className="text-center text-muted-foreground dark:text-muted-dark-foreground mb-8">
             When you discard a look, it will appear here. You can restore it
             back to your lookbooks anytime.
           </Text>

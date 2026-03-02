@@ -61,12 +61,12 @@ export function TypingText({
   return (
     <View className={cn("flex-row items-center", className)}>
       <Text
-        className={cn("text-sm font-medium text-foreground", textClassName)}
+        className={cn("text-sm font-medium text-foreground dark:text-foreground-dark", textClassName)}
       >
         {displayedText}
       </Text>
       <Animated.View style={{ opacity: showCursor ? 1 : 0 }}>
-        <View className="ml-0.5 w-0.5 h-4 bg-foreground" />
+        <View className="ml-0.5 w-0.5 h-4 bg-foreground dark:bg-foreground-dark" />
       </Animated.View>
     </View>
   );

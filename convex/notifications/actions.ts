@@ -15,6 +15,7 @@ async function sendExpoPushNotifications(
   body: string,
   data?: Record<string, unknown>,
   channelId: string = 'default',
+  imageUrl?: string,
 ): Promise<void> {
   if (tokens.length === 0) {
     console.log('[PUSH] No tokens to send to');
@@ -26,9 +27,10 @@ async function sendExpoPushNotifications(
     sound: 'default' as const,
     title,
     body,
-    data: data || {},
+    data: { ...(data || {}), ...(imageUrl ? { senderImageUrl: imageUrl } : {}) },
     priority: 'high' as const,
     channelId,
+    ...(imageUrl ? { image: imageUrl } : {}),
   }));
 
   try {
@@ -134,11 +136,12 @@ export const sendMessageNotification = internalAction({
     recipientId: v.id('users'),
     senderName: v.string(),
     lookId: v.id('looks'),
+    senderProfileImageUrl: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (
     ctx: ActionCtx,
-    args: { recipientId: Id<'users'>; senderName: string; lookId: Id<'looks'> }
+    args: { recipientId: Id<'users'>; senderName: string; lookId: Id<'looks'>; senderProfileImageUrl?: string }
   ): Promise<null> => {
     const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
       userId: args.recipientId,
@@ -155,7 +158,7 @@ export const sendMessageNotification = internalAction({
     await sendExpoPushNotifications(tokens, title, body, {
       type: 'message_received',
       lookId: args.lookId,
-    }, 'messages');
+    }, 'messages', args.senderProfileImageUrl);
 
     return null;
   },
@@ -265,6 +268,130 @@ export const sendOnboardingLooksReadyNotification = internalAction({
       type: 'onboarding_looks_ready',
       successCount: args.successCount,
     }, 'looks');
+
+    return null;
+  },
+});
+
+/**
+ * Send push notification when an order payment is confirmed
+ * Triggered from completeOrderPayment mutation
+ */
+export const sendOrderConfirmationNotification = internalAction({
+  args: {
+    userId: v.id('users'),
+    orderNumber: v.string(),
+  },
+  returns: v.null(),
+  handler: async (
+    ctx: ActionCtx,
+    args: { userId: Id<'users'>; orderNumber: string }
+  ): Promise<null> => {
+    const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
+      userId: args.userId,
+    });
+
+    if (tokens.length === 0) {
+      console.log(`[PUSH] No push tokens for user ${args.userId}, skipping order confirmation notification`);
+      return null;
+    }
+
+    const title = '🛍️ Order Confirmed!';
+    const body = `Your order ${args.orderNumber} has been confirmed! We'll start processing it right away.`;
+
+    await sendExpoPushNotifications(tokens, title, body, {
+      type: 'order_confirmed',
+      orderNumber: args.orderNumber,
+    }, 'orders');
+
+    return null;
+  },
+});
+
+/**
+ * Send push notification when someone loves or saves a user's look
+ * Triggered from toggleLove and recordSave mutations
+ */
+export const sendLookInteractionNotification = internalAction({
+  args: {
+    ownerId: v.id('users'),
+    interactorName: v.string(),
+    interactionType: v.union(v.literal('love'), v.literal('save')),
+    lookId: v.id('looks'),
+    interactorProfileImageUrl: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (
+    ctx: ActionCtx,
+    args: {
+      ownerId: Id<'users'>;
+      interactorName: string;
+      interactionType: 'love' | 'save';
+      lookId: Id<'looks'>;
+      interactorProfileImageUrl?: string;
+    }
+  ): Promise<null> => {
+    const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
+      userId: args.ownerId,
+    });
+
+    if (tokens.length === 0) {
+      console.log(`[PUSH] No push tokens for user ${args.ownerId}, skipping ${args.interactionType} notification`);
+      return null;
+    }
+
+    const isLove = args.interactionType === 'love';
+    const title = isLove ? '❤️ Someone Loved Your Look!' : '🔖 Someone Saved Your Look!';
+    const body = isLove
+      ? `${args.interactorName} loved your look. Tap to see it!`
+      : `${args.interactorName} saved your look. Tap to see it!`;
+
+    await sendExpoPushNotifications(tokens, title, body, {
+      type: `look_${args.interactionType}`,
+      lookId: args.lookId,
+    }, 'looks', args.interactorProfileImageUrl);
+
+    return null;
+  },
+});
+
+/**
+ * Send push notification when someone recreates a user's look
+ * Triggered from the recreateLook mutation
+ */
+export const sendRecreateLookNotification = internalAction({
+  args: {
+    ownerId: v.id('users'),
+    recreatorName: v.string(),
+    lookId: v.id('looks'),
+    recreatorProfileImageUrl: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (
+    ctx: ActionCtx,
+    args: {
+      ownerId: Id<'users'>;
+      recreatorName: string;
+      lookId: Id<'looks'>;
+      recreatorProfileImageUrl?: string;
+    }
+  ): Promise<null> => {
+    const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
+      userId: args.ownerId,
+    });
+
+    if (tokens.length === 0) {
+      console.log(`[PUSH] No push tokens for user ${args.ownerId}, skipping recreate notification`);
+      return null;
+    }
+
+    const title = '🔥 Someone Recreated Your Look!';
+    const body = `${args.recreatorName} recreated your look. Tap to see it!`;
+
+    await sendExpoPushNotifications(tokens, title, body, {
+      type: 'look_recreated',
+      lookId: args.lookId,
+    }, 'looks', args.recreatorProfileImageUrl);
 
     return null;
   },

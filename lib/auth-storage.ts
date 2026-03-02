@@ -147,3 +147,31 @@ export async function clearAllTokens(): Promise<void> {
     await SecureStore.deleteItemAsync(USER_INFO_KEY);
   }
 }
+
+// ---------- PKCE Storage ----------
+
+const PKCE_VERIFIER_KEY = 'workos_pkce_verifier';
+
+export async function getPKCEVerifier(): Promise<string | null> {
+  if (isWeb) {
+    return AsyncStorage.getItem(PKCE_VERIFIER_KEY);
+  } else {
+    return SecureStore.getItemAsync(PKCE_VERIFIER_KEY);
+  }
+}
+
+export async function setPKCEVerifier(verifier: string): Promise<void> {
+  if (isWeb) {
+    await AsyncStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+  } else {
+    await SecureStore.setItemAsync(PKCE_VERIFIER_KEY, verifier);
+  }
+}
+
+export async function clearPKCEVerifier(): Promise<void> {
+  if (isWeb) {
+    await AsyncStorage.removeItem(PKCE_VERIFIER_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(PKCE_VERIFIER_KEY);
+  }
+}

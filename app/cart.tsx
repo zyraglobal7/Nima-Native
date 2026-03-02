@@ -1,10 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   View,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -20,6 +21,8 @@ import {
   Plus,
   Minus,
   Sparkles,
+  Clock,
+  X,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,6 +38,8 @@ export default function CartScreen() {
   const removeFromCart = useMutation(api.cart.mutations.removeFromCart);
   const updateQuantity = useMutation(api.cart.mutations.updateQuantity);
   const clearCart = useMutation(api.cart.mutations.clearCart);
+
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
 
   const isLoading = cartItems === undefined;
 
@@ -83,8 +88,8 @@ export default function CartScreen() {
   }, [clearCart]);
 
   const handleCheckout = useCallback(() => {
-    router.push("/checkout" as any);
-  }, [router]);
+    setCheckoutModalVisible(true);
+  }, []);
 
   const handleBrowse = useCallback(() => {
     router.push("/(tabs)/discover" as any);
@@ -376,6 +381,59 @@ export default function CartScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Checkout Coming Soon Modal */}
+      <Modal
+        visible={checkoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCheckoutModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setCheckoutModalVisible(false)}
+          className="flex-1 bg-black/50 items-center justify-center px-6"
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            className="bg-surface dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm items-center border border-border/30 dark:border-border-dark/30"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.15,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
+          >
+            {/* Icon */}
+            <View className="w-16 h-16 rounded-full bg-surface-alt dark:bg-surface-alt-dark items-center justify-center mb-4">
+              <Clock size={32} color={accentColor} />
+            </View>
+
+            {/* Title */}
+            <Text className="text-xl font-serif font-semibold text-foreground dark:text-foreground-dark mb-2 text-center">
+              Coming Soon
+            </Text>
+
+            {/* Message */}
+            <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground text-center mb-6 leading-relaxed">
+              Checkout will be available soon. We're working hard to bring you a
+              seamless shopping experience!
+            </Text>
+
+            {/* Dismiss Button */}
+            <TouchableOpacity
+              onPress={() => setCheckoutModalVisible(false)}
+              className="bg-primary dark:bg-primary-dark py-3.5 px-8 rounded-2xl w-full items-center"
+            >
+              <Text className="text-base font-medium text-primary-foreground dark:text-primary-dark-foreground">
+                Got it
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

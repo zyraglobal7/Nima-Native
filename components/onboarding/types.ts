@@ -129,14 +129,14 @@ export interface StyleVibeCard {
 }
 
 export const STYLE_VIBE_CARDS: StyleVibeCard[] = [
-  { id: '1', title: 'Classic, Preppy', image: require('../../assets/Classic, Preppy.png'), tags: ['Classic', 'Preppy'] },
-  { id: '2', title: 'Minimalist, Casual', image: require('../../assets/minimalist, casual.png'), tags: ['Minimalist', 'Casual'] },
-  { id: '3', title: 'Neutrals, Classic', image: require('../../assets/Neutrals, classic.png'), tags: ['Neutrals', 'Classic'] },
-  { id: '4', title: 'Sporty, Gym Wear', image: require('../../assets/Sporty, gym wear.png'), tags: ['Sporty', 'Casual'] },
-  { id: '5', title: 'Streetwear, Edgy', image: require('../../assets/Streetwear, Edgy.png'), tags: ['Streetwear', 'Edgy'] },
-  { id: '6', title: 'Trendy, Casual', image: require('../../assets/Trendy, Casual.png'), tags: ['Trendy', 'Casual'] },
-  { id: '7', title: 'Vintage, Romantic', image: require('../../assets/Vintage, Romantic, .png'), tags: ['Vintage', 'Romantic'] },
-  { id: '8', title: 'Formal, Elegant', image: require('../../assets/Formal, Elegant.png'), tags: ['Formal', 'Elegant'] },
+  { id: '1', title: 'Classic, Preppy', image: require('../../assets/ClassicPrepp.jpeg'), tags: ['Classic', 'Preppy'] },
+  { id: '2', title: 'Minimalist, Casual', image: require('../../assets/minimalistcasua.jpeg'), tags: ['Minimalist', 'Casual'] },
+  { id: '3', title: 'Neutrals, Classic', image: require('../../assets/Neutralsclassi.jpeg'), tags: ['Neutrals', 'Classic'] },
+  { id: '4', title: 'Sporty, Gym Wear', image: require('../../assets/Sportygymwea.jpeg'), tags: ['Sporty', 'Casual'] },
+  { id: '5', title: 'Streetwear, Edgy', image: require('../../assets/StreetwearEdg.jpeg'), tags: ['Streetwear', 'Edgy'] },
+  { id: '6', title: 'Trendy, Casual', image: require('../../assets/TrendyCasua.jpeg'), tags: ['Trendy', 'Casual'] },
+  { id: '7', title: 'Vintage, Romantic', image: require('../../assets/VintageRomantic.jpeg'), tags: ['Vintage', 'Romantic'] },
+  { id: '8', title: 'Formal, Elegant', image: require('../../assets/FormalElegan.jpeg'), tags: ['Formal', 'Elegant'] },
 ];
 
 export const COUNTRIES = [

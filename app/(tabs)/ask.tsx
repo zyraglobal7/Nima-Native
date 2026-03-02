@@ -6,7 +6,7 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useQuery, useMutation, useAction } from "convex/react";
@@ -36,7 +36,6 @@ type ViewState = "welcome" | "chatting";
 type ChatState = "idle" | "typing" | "curating" | "generating" | "no_matches";
 
 export default function AskScreen() {
-  const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const { isDark } = useTheme();
 

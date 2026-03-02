@@ -11,6 +11,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { ApparelItem } from "./ApparelItemCard";
+import * as Haptics from "expo-haptics";
 import { formatPrice } from "@/lib/utils/format";
 import { Text } from "@/components/ui/Text";
 import BottomSheet, {
@@ -97,13 +98,14 @@ export function CreateLookSheet({
   const totalPrice = selectedItems.reduce((sum, item) => sum + item.price, 0);
   const currency = selectedItems[0]?.currency || "KES";
 
-  // Snap points
-  const snapPoints = useMemo(() => ["90%"], []);
+  // Snap points — fixed height so BottomSheetScrollView can scroll properly
+  const snapPoints = useMemo(() => ["95%"], []);
 
   // Watch for look completion
   useEffect(() => {
     if (lookStatus?.status === "completed" && lookId) {
       setStatus("completed");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (lookStatus.imageUrl) {
         setGeneratedImageUrl(lookStatus.imageUrl);
       }
@@ -238,7 +240,7 @@ export function CreateLookSheet({
 
   const handleCopyLink = async () => {
     if (!lookId) return;
-    const url = `https://app.nimaai.com/look/${lookId}`;
+    const url = `https://www.shopnima.ai/look/${lookId}`;
     try {
       await Clipboard.setStringAsync(url);
       Alert.alert("Copied", "Link copied to clipboard!");
@@ -293,7 +295,7 @@ export function CreateLookSheet({
       <BottomSheetView style={{ flex: 1 }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-border dark:border-border-dark">
-          <View>
+          <View className="flex-1">
             <Text className="text-xl font-semibold text-foreground dark:text-foreground-dark">
               {status === "completed"
                 ? "Your Look is Ready! ✨"
@@ -311,14 +313,14 @@ export function CreateLookSheet({
               onClose();
             }}
             disabled={status === "creating" || status === "generating"}
-            className="p-2 rounded-full"
+            className="p-2 rounded-full ml-2"
           >
             <X size={20} color="#9C948A" />
           </TouchableOpacity>
         </View>
 
         {/* Content */}
-        <BottomSheetScrollView style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 16 }}>
+        <BottomSheetScrollView style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 16 }} contentContainerStyle={{ paddingBottom: 120 }}>
           {status === "completed" ? (
             <View className="gap-6">
               {/* Generated look image */}
