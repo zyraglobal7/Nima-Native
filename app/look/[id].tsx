@@ -325,7 +325,7 @@ export default function LookDetailScreen() {
       >
         {/* Floating header */}
         <View
-          style={{ paddingTop: 55 }}
+          style={{ paddingTop: insets.top + 8 }}
           className="absolute z-10 w-full flex-row justify-between px-4"
         >
           <TouchableOpacity
