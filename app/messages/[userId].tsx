@@ -12,7 +12,7 @@ import { Text } from "@/components/ui/Text";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Sparkles } from "lucide-react-native";
+import { Sparkles, ChevronLeft } from "lucide-react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -228,6 +228,19 @@ export default function MessageDetailScreen() {
 
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
+      {/* Header */}
+      <View
+        style={{ paddingTop: insets.top + 10 }}
+        className="flex-row items-center px-4 pb-3 border-b border-border dark:border-border-dark"
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-10 h-10 rounded-full bg-background dark:bg-background-dark border border-border/50 dark:border-border-dark/50 items-center justify-center"
+        >
+          <ChevronLeft size={22} color={isDark ? "#E8E2DA" : "#2D2926"} />
+        </TouchableOpacity>
+      </View>
+
       {/* Content */}
       {isLoading ? (
         <View className="flex-1 items-center justify-center">

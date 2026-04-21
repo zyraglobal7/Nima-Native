@@ -15,9 +15,11 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.nima.app",
+      bundleIdentifier: "ai.shopnima.app",
       "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false
+      "ITSAppUsesNonExemptEncryption": false,
+      "NSCameraUsageDescription": "Nima uses your camera so you can point at clothing items and instantly see yourself wearing them.",
+      "NSPhotoLibraryUsageDescription": "Nima accesses your photo library so you can pick clothing items to try on virtually."
     },
       associatedDomains: [
         "applinks:www.shopnima.ai",
@@ -27,6 +29,7 @@ export default {
     android: {
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      permissions: ["android.permission.CAMERA"],
       adaptiveIcon: {
         foregroundImage: "./assets/nima-mascott.png",
         backgroundColor: "#FAF8F5",
@@ -41,9 +44,11 @@ export default {
             { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/look/" },
             { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/product/" },
             { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/lookbook/" },
+            { scheme: "https", host: "www.shopnima.ai", pathPrefix: "/callback" },
             { scheme: "https", host: "shopnima.ai", pathPrefix: "/look/" },
             { scheme: "https", host: "shopnima.ai", pathPrefix: "/product/" },
             { scheme: "https", host: "shopnima.ai", pathPrefix: "/lookbook/" },
+            { scheme: "https", host: "shopnima.ai", pathPrefix: "/callback" },
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },
@@ -58,6 +63,14 @@ export default {
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Nima uses your camera so you can point at clothing items and instantly see yourself wearing them.",
+          microphonePermission: false,
+          recordAudioAndroid: false,
+        },
+      ],
       [
         "expo-notifications",
         {

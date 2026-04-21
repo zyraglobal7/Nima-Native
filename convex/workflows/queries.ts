@@ -26,8 +26,10 @@ export const getUserForWorkflow = internalQuery({
         v.union(v.literal('male'), v.literal('female'), v.literal('prefer-not-to-say'))
       ),
       stylePreferences: v.array(v.string()),
+      occasions: v.optional(v.array(v.string())),
       budgetRange: v.optional(v.union(v.literal('low'), v.literal('mid'), v.literal('premium'))),
       firstName: v.optional(v.string()),
+      styleProfile: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -38,8 +40,10 @@ export const getUserForWorkflow = internalQuery({
     _id: Id<'users'>;
     gender?: 'male' | 'female' | 'prefer-not-to-say';
     stylePreferences: string[];
+    occasions?: string[];
     budgetRange?: 'low' | 'mid' | 'premium';
     firstName?: string;
+    styleProfile?: string;
   } | null> => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
@@ -50,8 +54,10 @@ export const getUserForWorkflow = internalQuery({
       _id: user._id,
       gender: user.gender,
       stylePreferences: user.stylePreferences,
+      occasions: user.occasions,
       budgetRange: user.budgetRange,
       firstName: user.firstName,
+      styleProfile: user.styleProfile,
     };
   },
 });
@@ -194,6 +200,16 @@ export const getLookWithItemImages = internalQuery({
           primaryImageUrl: v.union(v.string(), v.null()),
         })
       ),
+      // Wardrobe items the user already owns — included alongside catalog items
+      wardrobeItems: v.array(
+        v.object({
+          _id: v.id('wardrobeItems'),
+          description: v.string(),
+          category: v.string(),
+          color: v.string(),
+          imageUrl: v.union(v.string(), v.null()),
+        })
+      ),
     }),
     v.null()
   ),
@@ -223,21 +239,25 @@ export const getLookWithItemImages = internalQuery({
       colors: string[];
       primaryImageUrl: string | null;
     }>;
+    wardrobeItems: Array<{
+      _id: Id<'wardrobeItems'>;
+      description: string;
+      category: string;
+      color: string;
+      imageUrl: string | null;
+    }>;
   } | null> => {
     const look = await ctx.db.get(args.lookId);
     if (!look) {
       return null;
     }
 
-    // Fetch all items with their primary images
+    // Fetch catalog items with their primary images
     const items = await Promise.all(
       look.itemIds.map(async (itemId) => {
         const item = await ctx.db.get(itemId);
-        if (!item) {
-          return null;
-        }
+        if (!item) return null;
 
-        // Get primary image for the item
         const primaryImage = await ctx.db
           .query('item_images')
           .withIndex('by_item_and_primary', (q) => q.eq('itemId', itemId).eq('isPrimary', true))
@@ -264,7 +284,6 @@ export const getLookWithItemImages = internalQuery({
       })
     );
 
-    // Filter out null items
     const validItems = items.filter((item) => item !== null) as Array<{
       _id: Id<'items'>;
       name: string;
@@ -285,11 +304,36 @@ export const getLookWithItemImages = internalQuery({
       primaryImageUrl: string | null;
     }>;
 
+    // Fetch wardrobe items (user's own items) with their background-removed images
+    const wardrobeItems = await Promise.all(
+      (look.wardrobeItemIds ?? []).map(async (wiId) => {
+        const wi = await ctx.db.get(wiId);
+        if (!wi) return null;
+        const imageUrl = await ctx.storage.getUrl(wi.imageStorageId);
+        return {
+          _id: wi._id,
+          description: wi.description,
+          category: wi.category,
+          color: wi.color,
+          imageUrl,
+        };
+      })
+    );
+
+    const validWardrobeItems = wardrobeItems.filter((wi) => wi !== null) as Array<{
+      _id: Id<'wardrobeItems'>;
+      description: string;
+      category: string;
+      color: string;
+      imageUrl: string | null;
+    }>;
+
     return {
       _id: look._id,
       publicId: look.publicId,
       nimaComment: look.nimaComment,
       items: validItems,
+      wardrobeItems: validWardrobeItems,
     };
   },
 });

@@ -1,54 +1,37 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useContext } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import PagerView from "react-native-pager-view";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { SettingsTab } from "@/components/profile/SettingsTab";
 import { PhotosTab } from "@/components/profile/PhotosTab";
 import { StyleFitTab } from "@/components/profile/StyleFitTab";
 import { AccountTab } from "@/components/profile/AccountTab";
-import { SwipeTutorial } from "@/components/profile/SwipeTutorial";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-// Re-export as Expo Router's route-level ErrorBoundary for this screen
-export { RouteErrorBoundary as ErrorBoundary } from "@/components/ErrorBoundary";
+import { NavigationContext } from "@react-navigation/core";
 
 const TABS = ["Settings", "Photos", "Style & Fit", "Account"] as const;
-const TUTORIAL_KEY = "nima-profile-swipe-tutorial-seen";
+type TabLabel = (typeof TABS)[number];
 
 export default function ProfileScreen() {
+  // Guard: don't render until the navigation context is available.
+  // Prevents the transient "Couldn't find a navigation context" error
+  // that occurs during initial mount or hot reload.
+  const navContext = useContext(NavigationContext);
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const pagerRef = useRef<PagerView>(null);
   const currentUser = useQuery(api.users.queries.getCurrentUser);
 
-  // Check if swipe tutorial has been seen
-  useEffect(() => {
-    AsyncStorage.getItem(TUTORIAL_KEY).then((value) => {
-      if (value !== "true") {
-        setShowTutorial(true);
-      }
-    });
-  }, []);
-
-  const dismissTutorial = useCallback(() => {
-    setShowTutorial(false);
-    AsyncStorage.setItem(TUTORIAL_KEY, "true");
-  }, []);
-
   const goToPage = useCallback((index: number) => {
-    pagerRef.current?.setPage(index);
     setActiveIndex(index);
   }, []);
 
-  if (isLoading || (isAuthenticated && currentUser === undefined)) {
+  if (!navContext || isLoading || (isAuthenticated && currentUser === undefined)) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
         <ActivityIndicator size="large" color="#A67C52" />
@@ -73,30 +56,14 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Swipeable tab content */}
-        <PagerView
-          ref={pagerRef}
-          style={{ flex: 1 }}
-          initialPage={0}
-          onPageSelected={(e) => setActiveIndex(e.nativeEvent.position)}
-        >
-          <View key="settings" style={{ flex: 1 }}>
-            <SettingsTab />
-          </View>
-          <View key="photos" style={{ flex: 1 }}>
-            <PhotosTab />
-          </View>
-          <View key="style" style={{ flex: 1 }}>
-            <StyleFitTab />
-          </View>
-          <View key="account" style={{ flex: 1 }}>
-            <AccountTab />
-          </View>
-        </PagerView>
+        {/* Tab content */}
+        <View className="flex-1">
+          {activeIndex === 0 && <SettingsTab />}
+          {activeIndex === 1 && <PhotosTab />}
+          {activeIndex === 2 && <StyleFitTab />}
+          {activeIndex === 3 && <AccountTab />}
+        </View>
       </View>
-
-      {/* First-time swipe tutorial overlay */}
-      {showTutorial && <SwipeTutorial onDismiss={dismissTutorial} />}
     </SafeAreaView>
   );
 }
@@ -108,7 +75,7 @@ function TabButton({
 }: {
   active: boolean;
   onPress: () => void;
-  label: string;
+  label: TabLabel;
 }) {
   return (
     <TouchableOpacity

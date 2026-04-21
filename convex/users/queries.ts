@@ -1,4 +1,4 @@
-import { query, QueryCtx } from '../_generated/server';
+import { query, internalQuery, QueryCtx } from '../_generated/server';
 import { v } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
 import { isValidUsername } from '../types';
@@ -72,8 +72,11 @@ export const getOnboardingState = query({
     if (!user.country) missingFields.push('country');
     if (!user.budgetRange) missingFields.push('budgetRange');
 
-    // Profile is complete if we have at least gender and style preferences
-    const hasProfileData = !!user.gender && user.stylePreferences && user.stylePreferences.length > 0;
+    // Profile is complete if onboardingCompleted flag is set, OR if user has style preferences
+    // (new flow doesn't collect gender, so we can't require it)
+    const hasProfileData =
+      user.onboardingCompleted ||
+      (user.stylePreferences && user.stylePreferences.length > 0);
 
     // Count images linked to this user
     const userImages = await ctx.db
@@ -128,16 +131,18 @@ export const getCurrentUser = query({
       country: v.optional(v.string()),
       currency: v.optional(v.string()),
       budgetRange: v.optional(v.union(v.literal('low'), v.literal('mid'), v.literal('premium'))),
+      occasions: v.optional(v.array(v.string())),
       phoneNumber: v.optional(v.string()),
       phoneVerified: v.optional(v.boolean()),
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
-      // Credits system
       credits: v.optional(v.number()),
       freeCreditsUsedThisWeek: v.optional(v.number()),
       weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
+      onboardingWorkflowStartedAt: v.optional(v.float64()),
+      styleProfile: v.optional(v.string()),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
       savedShippingAddress: v.optional(v.object({
@@ -223,16 +228,21 @@ export const getUser = query({
       country: v.optional(v.string()),
       currency: v.optional(v.string()),
       budgetRange: v.optional(v.union(v.literal('low'), v.literal('mid'), v.literal('premium'))),
+      occasions: v.optional(v.array(v.string())),
       phoneNumber: v.optional(v.string()),
       phoneVerified: v.optional(v.boolean()),
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
+
       // Credits system
+
       credits: v.optional(v.number()),
       freeCreditsUsedThisWeek: v.optional(v.number()),
       weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
+      onboardingWorkflowStartedAt: v.optional(v.float64()),
+      styleProfile: v.optional(v.string()),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
       savedShippingAddress: v.optional(v.object({
@@ -307,16 +317,21 @@ export const getUserByWorkosId = query({
       country: v.optional(v.string()),
       currency: v.optional(v.string()),
       budgetRange: v.optional(v.union(v.literal('low'), v.literal('mid'), v.literal('premium'))),
+      occasions: v.optional(v.array(v.string())),
       phoneNumber: v.optional(v.string()),
       phoneVerified: v.optional(v.boolean()),
       subscriptionTier: v.union(v.literal('free'), v.literal('style_pass'), v.literal('vip')),
       dailyTryOnCount: v.number(),
       dailyTryOnResetAt: v.number(),
+
       // Credits system
+
       credits: v.optional(v.number()),
       freeCreditsUsedThisWeek: v.optional(v.number()),
       weeklyCreditsResetAt: v.optional(v.number()),
       onboardingCompleted: v.boolean(),
+      onboardingWorkflowStartedAt: v.optional(v.float64()),
+      styleProfile: v.optional(v.string()),
       isActive: v.boolean(),
       role: v.optional(v.union(v.literal('user'), v.literal('admin'), v.literal('seller'))),
       savedShippingAddress: v.optional(v.object({
@@ -635,3 +650,14 @@ export const searchUsers = query({
   },
 });
 
+
+/**
+ * Internal: get a user by ID (used from internal actions that cannot use auth context).
+ */
+export const getUserById = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.any(),
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users"> }): Promise<Doc<"users"> | null> => {
+    return await ctx.db.get(args.userId);
+  },
+});

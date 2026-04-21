@@ -42,6 +42,7 @@ export default defineSchema({
     country: v.optional(v.string()),
     currency: v.optional(v.string()),
     budgetRange: v.optional(v.union(v.literal('low'), v.literal('mid'), v.literal('premium'))),
+    occasions: v.optional(v.array(v.string())), // ["Work/Office", "Casual Hangouts", etc.]
 
     // Optional contact (for future)
     phoneNumber: v.optional(v.string()),
@@ -59,6 +60,8 @@ export default defineSchema({
 
     // Status
     onboardingCompleted: v.boolean(),
+    onboardingWorkflowStartedAt: v.optional(v.number()), // Prevents double-triggering the look generation workflow
+    styleProfile: v.optional(v.any()), // AI-generated style profile — string (legacy text) or structured object (richStyleProfile)
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -200,6 +203,10 @@ export default defineSchema({
     viewCount: v.optional(v.number()),
     saveCount: v.optional(v.number()),
     purchaseCount: v.optional(v.number()),
+    tryOnCount: v.optional(v.number()),
+    lookbookSaveCount: v.optional(v.number()),
+    cartAddCount: v.optional(v.number()),
+    lookInclusionCount: v.optional(v.number()),
 
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -331,6 +338,9 @@ export default defineSchema({
     ),
     // For recreated looks, track the original look
     originalLookId: v.optional(v.id('looks')),
+
+    // Wardrobe items included in this look (user's own items, for virtual try-on)
+    wardrobeItemIds: v.optional(v.array(v.id('wardrobeItems'))),
 
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -744,8 +754,17 @@ export default defineSchema({
     ),
     verificationNotes: v.optional(v.string()),
 
+    // Tier
+    tier: v.optional(v.union(
+      v.literal('basic'),
+      v.literal('starter'),
+      v.literal('growth'),
+      v.literal('premium')
+    )),
+
     // Status
     isActive: v.boolean(),
+    tryOnCredits: v.optional(v.number()),
 
     // Timestamps
     createdAt: v.number(),
@@ -753,7 +772,8 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_slug', ['slug'])
-    .index('by_verification_status', ['verificationStatus']),
+    .index('by_verification_status', ['verificationStatus'])
+    .index('by_tier', ['tier']),
 
   // ============================================
   // ORDERS
@@ -998,5 +1018,304 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_token', ['token']),
+
+  // ============================================
+  // SELLER SUBSCRIPTIONS
+  // ============================================
+
+  /**
+   * seller_subscriptions - Paid tier subscription records
+   * Each row is one billing cycle attempt. Active subscription drives seller.tier.
+   */
+  /**
+   * Tier configuration — one row per tier, editable by admins.
+   * Seeded with defaults on first read if missing.
+   */
+  tier_config: defineTable({
+    tier: v.union(
+      v.literal('basic'),
+      v.literal('starter'),
+      v.literal('growth'),
+      v.literal('premium')
+    ),
+    maxProducts: v.union(v.number(), v.null()),       // null = unlimited
+    revenueChartDays: v.number(),                      // 0 = no chart
+    orderHistoryDays: v.union(v.number(), v.null()),   // null = unlimited
+    topProductsLimit: v.union(v.number(), v.null()),   // null = unlimited, 0 = hidden
+    showEngagementCounts: v.boolean(),
+    showCartCounts: v.boolean(),
+    priceKes: v.number(),                              // 0 for basic
+    updatedAt: v.number(),
+  }).index('by_tier', ['tier']),
+
+  seller_subscriptions: defineTable({
+    sellerId: v.id('sellers'),
+    tier: v.union(
+      v.literal('starter'),
+      v.literal('growth'),
+      v.literal('premium')
+    ),
+    status: v.union(
+      v.literal('pending'),   // STK push sent, waiting for payment
+      v.literal('active'),    // Paid, running
+      v.literal('expired'),   // periodEnd passed, seller downgraded to basic
+      v.literal('cancelled'), // Manually cancelled by admin
+      v.literal('failed')     // Payment failed
+    ),
+    periodStart: v.optional(v.number()),
+    periodEnd: v.optional(v.number()),     // periodStart + 30 days
+    amountKes: v.number(),                 // 5000 | 15000 | 30000
+    phoneNumber: v.string(),               // M-Pesa phone used
+    merchantTransactionId: v.string(),     // nima_sub_xxxx
+    fingoTransactionId: v.optional(v.string()),
+    failureReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_seller', ['sellerId'])
+    .index('by_seller_and_status', ['sellerId', 'status'])
+    .index('by_status', ['status'])
+    .index('by_period_end', ['periodEnd'])
+    .index('by_merchant_transaction_id', ['merchantTransactionId']),
+
+  // ============================================
+  // SELLER AI CHAT
+  // ============================================
+
+  /**
+   * seller_chat_messages - Premium seller AI insights conversation history
+   * Stores messages for the AI business analyst chat feature (Premium only)
+   */
+  seller_chat_messages: defineTable({
+    sellerId: v.id('sellers'),
+    role: v.union(v.literal('user'), v.literal('assistant')),
+    content: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_seller', ['sellerId'])
+    .index('by_seller_and_created', ['sellerId', 'createdAt']),
+
+  // ============================================
+  // NIMA CONNECT (Third-Party API)
+  // ============================================
+
+  /**
+   * api_partners - External merchants using Nima Connect API
+   * Each partner has an API key (hashed) and usage limits based on plan
+   */
+  api_partners: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    websiteUrl: v.string(),
+    apiKeyHash: v.string(),       // SHA-256 of full key
+    apiKeyPrefix: v.string(),     // first 16 chars of key (after "nima_pk_") for O(1) lookup
+    allowedDomains: v.array(v.string()),
+    webhookUrl: v.optional(v.string()),
+    webhookSecret: v.optional(v.string()),
+    plan: v.union(
+      v.literal('free'),
+      v.literal('starter'),
+      v.literal('growth'),
+      v.literal('enterprise'),
+    ),
+    monthlyTryOnLimit: v.number(),   // free=50, starter=500, growth=5000, enterprise=999999
+    tryOnsUsedThisMonth: v.number(),
+    billingResetAt: v.number(),
+    isActive: v.boolean(),
+    sellerId: v.optional(v.id('sellers')), // link to seller if they're also a Nima seller
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_api_key_prefix', ['apiKeyPrefix'])
+    .index('by_slug', ['slug'])
+    .index('by_seller', ['sellerId']),
+
+  /**
+   * api_sessions - Try-on sessions created by API partners
+   * Each session represents one try-on request for an external product
+   */
+  api_sessions: defineTable({
+    partnerId: v.id('api_partners'),
+    sessionToken: v.string(),
+    nimaUserId: v.optional(v.id('users')),
+    guestFingerprint: v.optional(v.string()),
+    externalProductId: v.string(),
+    externalProductUrl: v.optional(v.string()),
+    productImageUrl: v.string(),
+    productName: v.optional(v.string()),
+    // Partner-supplied ID to correlate this session with their cart/order system
+    trackingId: v.optional(v.string()),
+    productCategory: v.optional(
+      v.union(
+        v.literal('top'),
+        v.literal('bottom'),
+        v.literal('dress'),
+        v.literal('outfit'),
+        v.literal('outerwear'),
+      )
+    ),
+    guestImageStorageId: v.optional(v.id('_storage')),
+    resultStorageId: v.optional(v.id('_storage')),
+    guestTryOnUsed: v.boolean(),
+    guestTryOnCount: v.optional(v.number()),
+    status: v.union(
+      v.literal('created'),
+      v.literal('photo_needed'),
+      v.literal('photo_uploaded'),
+      v.literal('processing'),
+      v.literal('completed'),
+      v.literal('failed'),
+      v.literal('expired'),
+    ),
+    errorMessage: v.optional(v.string()),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_session_token', ['sessionToken'])
+    .index('by_partner', ['partnerId'])
+    .index('by_nima_user', ['nimaUserId'])
+    .index('by_expires_at', ['expiresAt']),
+
+  /**
+   * api_usage_logs - Audit log of events per session
+   * Includes try-on lifecycle events AND post-try-on conversion events
+   * (item_added_to_cart, item_purchased) reported by partners via /api/v1/track
+   */
+  api_usage_logs: defineTable({
+    partnerId: v.id('api_partners'),
+    sessionId: v.id('api_sessions'),
+    eventType: v.union(
+      v.literal('session_created'),
+      v.literal('photo_uploaded'),
+      v.literal('tryon_generated'),
+      v.literal('tryon_failed'),
+      v.literal('user_converted'),
+      // Conversion events — reported by partner after try-on
+      v.literal('item_added_to_cart'),
+      v.literal('item_purchased'),
+    ),
+    externalProductId: v.optional(v.string()),
+    wasAuthenticated: v.boolean(),
+    generationTimeMs: v.optional(v.number()),
+    // Conversion tracking fields (set for item_added_to_cart / item_purchased)
+    itemValue: v.optional(v.number()),   // monetary value in smallest unit (e.g. cents/KES)
+    currency: v.optional(v.string()),    // e.g. "KES", "USD"
+    trackingId: v.optional(v.string()),  // partner's internal cart/order reference
+    createdAt: v.number(),
+  })
+    .index('by_partner', ['partnerId'])
+    .index('by_partner_and_created', ['partnerId', 'createdAt'])
+    .index('by_event_type', ['eventType']),
+
+  // ============================================
+  // QUICK TRY-ONS (Camera-captured item try-on)
+  // ============================================
+
+  /**
+   * quick_try_ons - Try-on using camera-captured item image
+   * User captures an item they see, tries it on using their primary profile image
+   */
+  quick_try_ons: defineTable({
+    userId: v.id('users'),
+    userImageId: v.id('user_images'), // User's primary profile image
+    capturedItemStorageId: v.id('_storage'), // Camera-captured item photo
+    resultStorageId: v.optional(v.id('_storage')),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('completed'),
+      v.literal('failed')
+    ),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_status', ['status']),
+
+  // ============================================
+  // SELLER TRY-ONS (Customer try-on via seller link)
+  // ============================================
+
+  /**
+   * seller_try_ons - Customer try-ons triggered by seller try-on links
+   * Credits are deducted from the seller's tryOnCredits balance
+   */
+  seller_try_ons: defineTable({
+    sellerId: v.id('sellers'),
+    itemId: v.id('items'),
+    customerImageStorageId: v.id('_storage'), // Customer's uploaded photo
+    resultStorageId: v.optional(v.id('_storage')),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('completed'),
+      v.literal('failed')
+    ),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_seller', ['sellerId'])
+    .index('by_status', ['status']),
+
+  // ============================================
+  // WARDROBE — USER-OWNED ITEMS
+  // ============================================
+
+  /**
+   * wardrobeItems - Items the user already owns (from closet upload or single-item upload)
+   * Used by the recommendation engine to suggest outfits that mix new catalog items
+   * with things already in the user's wardrobe.
+   */
+  wardrobeItems: defineTable({
+    userId: v.id('users'),
+    imageStorageId: v.id('_storage'),           // processed image (background removed)
+    originalImageStorageId: v.id('_storage'),   // original upload
+    description: v.string(),                     // e.g. "Navy blue slim-fit chinos"
+    category: v.string(),                        // "tops" | "bottoms" | "shoes" | "outerwear" | "accessories" | "dresses"
+    subcategory: v.optional(v.string()),         // e.g. "chinos", "sneakers"
+    tags: v.array(v.string()),                   // ["navy", "slim-fit", "cotton", "casual"]
+    color: v.string(),                           // primary color
+    season: v.optional(v.array(v.string())),     // ["all-season"] or ["warm", "cool"]
+    formality: v.string(),                       // "casual" | "smart-casual" | "semi-formal" | "formal" | "athletic"
+    source: v.union(v.literal('single_upload'), v.literal('closet_scan')),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_and_category', ['userId', 'category'])
+    .index('by_user_and_formality', ['userId', 'formality']),
+
+  // ============================================
+  // RECOMMENDATION ENGINE
+  // ============================================
+
+  /**
+   * recommendations - Pre-generated weekly outfit recommendations per user
+   * Generated every Monday by a cron job. Shown on the /engine page.
+   * Each record is one outfit combination for a specific occasion.
+   */
+  recommendations: defineTable({
+    userId: v.id('users'),
+    itemIds: v.array(v.id('items')),            // 2–4 catalog items forming an outfit
+    occasion: v.string(),                        // "golf", "concert", "deal closing meeting"
+    nimaComment: v.string(),                     // short AI-generated contextual comment
+    status: v.union(
+      v.literal('pending_comment'),             // items selected, awaiting AI comment
+      v.literal('active'),                      // ready to show
+      v.literal('expired'),                     // past the 1-week window
+      v.literal('tried_on'),                    // user tapped "Try it On"
+    ),
+    weekOf: v.number(),                          // timestamp of the Monday this was generated for
+    createdAt: v.number(),
+    expiresAt: v.number(),                       // 1 week after creation
+    // Wardrobe mix — optional, when the rec pairs catalog items with user's own items
+    wardrobeItemIds: v.optional(v.array(v.id('wardrobeItems'))),
+    isWardrobeMix: v.optional(v.boolean()),
+  })
+    .index('by_user_and_status', ['userId', 'status'])
+    .index('by_user_and_created', ['userId', 'createdAt'])
+    .index('by_expires', ['expiresAt']),
 
 });

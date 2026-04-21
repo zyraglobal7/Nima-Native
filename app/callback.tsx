@@ -11,6 +11,7 @@ import {
   setUserInfo,
   type StoredUserInfo,
 } from "@/lib/auth-storage";
+import { callLogin } from "@/lib/auth";
 
 // This must be called at the module level so that when WorkOS redirects
 // the browser to /callback?code=..., the auth session popup can detect
@@ -109,7 +110,12 @@ export default function CallbackScreen() {
       sessionStorage.removeItem("workos_pkce_verifier");
       sessionStorage.removeItem("workos_redirect_uri");
 
-      // 6. Navigate to the app root — the auth hook will pick up the tokens
+      // 6. Update the auth hook's React state immediately so Convex sees the
+      //    user as authenticated before navigation (root layout stays mounted,
+      //    so the storage-load effect won't re-run on router.replace).
+      callLogin(userInfo);
+
+      // 7. Navigate to the app root
       router.replace("/");
     } catch (err) {
       console.error("[CALLBACK] Web fallback error:", err);

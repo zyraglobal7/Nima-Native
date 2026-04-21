@@ -9,6 +9,7 @@ import { launchWorkOSAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 
 interface GateSplashProps {
+  /** @deprecated No longer used — auth is initiated directly from the splash */
   onGetStarted?: () => void;
 }
 
@@ -157,25 +158,13 @@ export function GateSplash({ onGetStarted }: GateSplashProps) {
           </View>
 
           {/* Actions */}
-          <View className="w-full max-w-[18rem] space-y-4">
+          <View className="w-full max-w-[18rem]">
             <Button
               size="lg"
-              label="Get Started"
-              onPress={onGetStarted}
+              label="Continue with Google"
+              onPress={handleSignIn}
               className="w-full dark:bg-primary-dark"
             />
-
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-muted-foreground dark:text-muted-dark-foreground text-sm">
-                Already a member?{" "}
-              </Text>
-              <Text
-                className="text-secondary dark:text-secondary-dark text-sm font-medium underline"
-                onPress={handleSignIn}
-              >
-                Sign in
-              </Text>
-            </View>
           </View>
         </Animated.View>
       </View>

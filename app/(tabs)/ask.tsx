@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { router } from "expo-router";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -18,35 +17,28 @@ import {
   TypingIndicator,
   type DisplayMessage,
 } from "@/components/ask/MessageBubble";
-import { WelcomeHero } from "@/components/ask/WelcomeHero";
-import {
-  PromptSuggestions,
-  PromptChips,
-} from "@/components/ask/PromptSuggestions";
 import { FittingRoomCard } from "@/components/ask/FittingRoomCard";
 import { SearchingCard } from "@/components/ask/SearchingCard";
 import { ExploreCard } from "@/components/ask/ExploreCard";
 import { Text } from "@/components/ui/Text";
-import { ArrowLeft, Sparkles, Clock } from "lucide-react-native";
+import { Sparkles, Plus, Clock } from "lucide-react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { CreditsModal } from "@/components/credits/CreditsModal";
 import { ChatHistoryDrawer } from "@/components/ask/ChatHistoryDrawer";
 
-type ViewState = "welcome" | "chatting";
 type ChatState = "idle" | "typing" | "curating" | "generating" | "no_matches";
 
 export default function AskScreen() {
   const flatListRef = useRef<FlatList>(null);
   const { isDark } = useTheme();
 
-  // View & chat state
-  const [viewState, setViewState] = useState<ViewState>("welcome");
+  // Chat state
   const [chatState, setChatState] = useState<ChatState>("idle");
 
   // Thread management
   const [threadId, setThreadId] = useState<Id<"threads"> | null>(null);
 
-  // Pending local messages (before DB sync)
+  // Pending local messages (error messages only — user/AI messages go straight to DB)
   const [pendingMessages, setPendingMessages] = useState<DisplayMessage[]>([]);
 
   // Chat conversation history for AI context
@@ -55,7 +47,6 @@ export default function AskScreen() {
   >([]);
 
   // Look generation state
-  const [createdLookIds, setCreatedLookIds] = useState<Id<"looks">[]>([]);
   const [lookScenario, setLookScenario] = useState<"fresh" | "remix">("fresh");
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(false);
@@ -63,14 +54,20 @@ export default function AskScreen() {
   // Get current user
   const currentUser = useQuery(api.users.queries.getCurrentUser);
 
+  // Wardrobe context for AI
+  const wardrobeItemsRaw = useQuery(api.wardrobe.queries.getWardrobeItems, {});
+  const wardrobeItems = (wardrobeItemsRaw ?? []).map((item) => ({
+    description: item.description,
+    category: item.category,
+    color: item.color,
+    formality: item.formality,
+  }));
+
   // Database messages (reactive)
   const dbMessages = useQuery(
     api.messages.queries.getAllMessages,
     threadId ? { threadId } : "skip",
   );
-
-  // Recent looks for remix context
-  const userRecentLooks = useQuery(api.chat.queries.getUserRecentLooks, {});
 
   // Mutations & actions
   const startConversation = useMutation(
@@ -114,7 +111,6 @@ export default function AskScreen() {
 
   // Combine DB + pending messages into display messages
   const displayMessages = useMemo((): DisplayMessage[] => {
-    // Convert DB messages to display format
     const dbDisplayMessages: DisplayMessage[] = (dbMessages || []).map(
       (msg) => ({
         id: msg._id,
@@ -122,11 +118,7 @@ export default function AskScreen() {
         content: msg.content,
         timestamp: new Date(msg.createdAt),
         type:
-          msg.messageType === "fitting-ready"
-            ? "fitting-ready"
-            : msg.messageType === "no-matches"
-              ? "text"
-              : "text",
+          msg.messageType === "fitting-ready" ? "fitting-ready" : "text",
         sessionId:
           msg.messageType === "fitting-ready" && msg.lookIds
             ? msg.lookIds.join(",")
@@ -136,7 +128,6 @@ export default function AskScreen() {
       }),
     );
 
-    // Filter pending messages that already exist in DB
     const dbMessageIds = new Set(
       (dbMessages || []).map((m) => m._id as string),
     );
@@ -147,28 +138,31 @@ export default function AskScreen() {
     return [...dbDisplayMessages, ...filteredPending];
   }, [dbMessages, pendingMessages]);
 
-  // Handle [MATCH_ITEMS:occasion] tag
+  const hasMessages = displayMessages.length > 0;
+
+  // Handle [MATCH_ITEMS:occasion|source] tag
   const handleMatchItems = useCallback(
-    async (occasion: string, currentThreadId: Id<"threads">) => {
+    async (
+      occasion: string,
+      source: "new" | "wardrobe" | "both" = "new",
+      currentThreadId: Id<"threads">
+    ) => {
       setChatState("curating");
 
       try {
-        // Create looks
         const result = await createLooksFromChat({
           occasion,
           context: occasion,
+          source,
         });
 
         if (result.success && "lookIds" in result) {
           const lookIds = result.lookIds;
-          setCreatedLookIds(lookIds);
           setLookScenario(result.scenario);
 
-          // Schedule image generation (runs in parallel, no token expiry)
           setChatState("generating");
           await scheduleChatLookImages({ lookIds });
 
-          // Save fitting-ready message
           await saveFittingReadyMessage({
             threadId: currentThreadId,
             lookIds,
@@ -177,11 +171,9 @@ export default function AskScreen() {
 
           setChatState("idle");
         } else if (!result.success && result.message === "insufficient_credits") {
-          // Show credits modal
           setChatState("idle");
           setShowCreditsModal(true);
         } else {
-          // No matches
           await saveNoMatchesMessage({
             threadId: currentThreadId,
             occasion,
@@ -208,34 +200,20 @@ export default function AskScreen() {
     async (content: string) => {
       if (!content.trim()) return;
 
-      // Switch to chatting view
-      setViewState("chatting");
       setChatState("typing");
 
-      // Add user message to pending
-      const userMsg: DisplayMessage = {
-        id: `pending-user-${Date.now()}`,
-        role: "user",
-        content,
-        timestamp: new Date(),
-        type: "text",
-      };
-      setPendingMessages((prev) => [...prev, userMsg]);
-
-      // Update conversation history
       const newHistory = [
         ...conversationHistory,
         { role: "user" as const, content },
       ];
       setConversationHistory(newHistory);
 
-      // Scroll to bottom
+      // Scroll to bottom after a tick (DB message will render)
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
       try {
-        // Start conversation if needed, or save user message to existing thread
         let currentThreadId = threadId;
         if (!currentThreadId) {
           const result = await startConversation({
@@ -245,26 +223,25 @@ export default function AskScreen() {
           currentThreadId = result.threadId;
           setThreadId(currentThreadId);
         } else {
-          // Thread already exists — persist the user message to DB
           await sendUserMessage({
             threadId: currentThreadId,
             content,
           });
         }
 
-        // Send to AI
+        // Send to AI — pass wardrobe info so the model knows whether the user has items
         const aiResult = await sendChatMessage({
           messages: newHistory,
           userData,
+          wardrobeItems: wardrobeItems.length > 0 ? wardrobeItems : undefined,
         });
 
         if (!aiResult.success || !aiResult.content) {
-          // AI error
           const errorMsg: DisplayMessage = {
             id: `error-${Date.now()}`,
             role: "nima",
             content:
-              "Sorry, I had trouble processing that. Can you try again? 🙏",
+              "Sorry, I had trouble processing that. Can you try again?",
             timestamp: new Date(),
             type: "text",
           };
@@ -275,21 +252,16 @@ export default function AskScreen() {
 
         const aiContent = aiResult.content;
 
-        // Update conversation history with AI response
         setConversationHistory((prev) => [
           ...prev,
           { role: "assistant" as const, content: aiContent },
         ]);
 
-        // Check for [MATCH_ITEMS:occasion] tag
-        const matchItemsRegex = /\[MATCH_ITEMS:([^\]]+)\]/;
-        const matchItemsMatch = aiContent.match(matchItemsRegex);
+        // Parse tags
+        const matchItemsMatch = aiContent.match(/\[MATCH_ITEMS:([^\]]+)\]/);
+        const remixLookMatch = aiContent.match(/\[REMIX_LOOK:([^\]]+)\]/);
 
-        // Check for [REMIX_LOOK:source|twist] tag
-        const remixLookRegex = /\[REMIX_LOOK:([^\]]+)\]/;
-        const remixLookMatch = aiContent.match(remixLookRegex);
-
-        // Save assistant message to DB (clean version without tags)
+        // Save clean version (no tags) to DB
         const cleanContent = aiContent
           .replace(/\[MATCH_ITEMS:[^\]]*\]/g, "")
           .replace(/\[REMIX_LOOK:[^\]]*\]/g, "")
@@ -302,19 +274,21 @@ export default function AskScreen() {
           });
         }
 
-        // Clear pending messages (they'll be replaced by DB messages)
         setPendingMessages([]);
 
         // Handle tags
         if (matchItemsMatch) {
-          const occasion = matchItemsMatch[1];
-          await handleMatchItems(occasion, currentThreadId);
+          const parts = matchItemsMatch[1].split("|");
+          const occasion = parts[0].trim();
+          const sourcePart = parts[1]?.trim() ?? "";
+          const source = (["new", "wardrobe", "both"].includes(sourcePart)
+            ? sourcePart
+            : "new") as "new" | "wardrobe" | "both";
+          await handleMatchItems(occasion, source, currentThreadId);
         } else if (remixLookMatch) {
-          // Parse source|twist format
           const parts = remixLookMatch[1].split("|");
           const sourceOccasion = parts[0] || "casual";
-          // Remix uses same flow as match for now
-          await handleMatchItems(sourceOccasion, currentThreadId);
+          await handleMatchItems(sourceOccasion, "new", currentThreadId);
         } else {
           setChatState("idle");
         }
@@ -323,7 +297,7 @@ export default function AskScreen() {
         const errorMsg: DisplayMessage = {
           id: `error-${Date.now()}`,
           role: "nima",
-          content: "Something went wrong. Please try again! 🙏",
+          content: "Something went wrong. Please try again!",
           timestamp: new Date(),
           type: "text",
         };
@@ -331,7 +305,6 @@ export default function AskScreen() {
         setChatState("idle");
       }
 
-      // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 200);
@@ -340,6 +313,7 @@ export default function AskScreen() {
       threadId,
       conversationHistory,
       userData,
+      wardrobeItems,
       startConversation,
       sendUserMessage,
       sendChatMessage,
@@ -348,46 +322,29 @@ export default function AskScreen() {
     ],
   );
 
-  const handlePromptSelect = (prompt: string) => {
-    handleSendMessage(prompt);
-  };
-
   const handleFittingRoomClick = useCallback(
     (sessionId: string) => {
       router.push(`/fitting/${sessionId}` as any);
     },
-    [router],
+    [],
   );
 
   const handleExplore = useCallback(() => {
     router.push("/(tabs)/discover" as any);
-  }, [router]);
+  }, []);
 
-  const handleBackToWelcome = useCallback(() => {
-    setViewState("welcome");
+  const handleNewChat = useCallback(() => {
     setChatState("idle");
     setThreadId(null);
     setPendingMessages([]);
     setConversationHistory([]);
-    setCreatedLookIds([]);
   }, []);
 
   const handleSelectThread = useCallback((selectedThreadId: Id<"threads">) => {
     setThreadId(selectedThreadId);
-    setViewState("chatting");
     setChatState("idle");
     setPendingMessages([]);
     setConversationHistory([]);
-    setCreatedLookIds([]);
-  }, []);
-
-  const handleNewChat = useCallback(() => {
-    setViewState("welcome");
-    setChatState("idle");
-    setThreadId(null);
-    setPendingMessages([]);
-    setConversationHistory([]);
-    setCreatedLookIds([]);
   }, []);
 
   // Register global callback so the Header can open chat history
@@ -398,7 +355,7 @@ export default function AskScreen() {
     };
   }, []);
 
-  // Scroll to bottom when messages change
+  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (displayMessages.length > 0) {
       setTimeout(() => {
@@ -407,7 +364,6 @@ export default function AskScreen() {
     }
   }, [displayMessages.length]);
 
-  // Get placeholder text based on state
   const getInputPlaceholder = () => {
     switch (chatState) {
       case "curating":
@@ -417,7 +373,7 @@ export default function AskScreen() {
       case "typing":
         return "Nima is thinking...";
       default:
-        return "Describe what you're looking for...";
+        return "Ask Nima anything...";
     }
   };
 
@@ -426,91 +382,8 @@ export default function AskScreen() {
     chatState === "curating" ||
     chatState === "generating";
 
-  // =====================================================
-  // WELCOME VIEW
-  // =====================================================
-  if (viewState === "welcome") {
-    return (
-      <View className="flex-1 bg-background dark:bg-background-dark">
-        {/* Animated Background */}
-        <View className="absolute inset-0">
-          <LinearGradient
-            colors={
-              isDark
-                ? ["rgba(166,124,82,0.08)", "transparent"]
-                : ["rgba(201,160,122,0.15)", "transparent"]
-            }
-            locations={[0, 0.6]}
-            style={{ flex: 1 }}
-          />
-        </View>
-
-        {/* Ambient glow orbs */}
-        <Animated.View
-          entering={FadeIn.duration(1200)}
-          style={{
-            position: "absolute",
-            top: "20%",
-            left: "15%",
-            width: 200,
-            height: 200,
-            borderRadius: 100,
-            backgroundColor: isDark
-              ? "rgba(201,160,122,0.06)"
-              : "rgba(201,160,122,0.1)",
-          }}
-        />
-        <Animated.View
-          entering={FadeIn.duration(1200).delay(300)}
-          style={{
-            position: "absolute",
-            bottom: "25%",
-            right: "10%",
-            width: 160,
-            height: 160,
-            borderRadius: 80,
-            backgroundColor: isDark
-              ? "rgba(166,124,82,0.05)"
-              : "rgba(166,124,82,0.08)",
-          }}
-        />
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
-          keyboardVerticalOffset={Platform.OS === "ios" ? 140 : 0}
-        >
-          <View className="flex-1 justify-center items-center px-6">
-            <WelcomeHero className="mb-10" />
-            <PromptSuggestions onSelect={handlePromptSelect} />
-          </View>
-
-          {/* Fixed bottom input */}
-          <ChatInput
-            onSend={handleSendMessage}
-            placeholder="Describe what you're looking for..."
-          />
-        </KeyboardAvoidingView>
-
-        {/* Chat History Drawer */}
-        <ChatHistoryDrawer
-          visible={showChatHistory}
-          onClose={() => setShowChatHistory(false)}
-          onSelectThread={handleSelectThread}
-          onNewChat={handleNewChat}
-          currentThreadId={threadId}
-        />
-      </View>
-    );
-  }
-
-  // =====================================================
-  // CHATTING VIEW
-  // =====================================================
-
   // Render a single chat item
   const renderChatItem = ({ item }: { item: DisplayMessage }) => {
-    // Fitting-ready messages get special card
     if (item.type === "fitting-ready" && item.sessionId) {
       return (
         <FittingRoomCard
@@ -523,7 +396,6 @@ export default function AskScreen() {
       );
     }
 
-    // Regular messages
     return (
       <MessageBubble
         message={item}
@@ -537,66 +409,109 @@ export default function AskScreen() {
   const renderFooter = () => {
     return (
       <View>
-        {/* Typing indicator */}
         {chatState === "typing" && <TypingIndicator />}
-
-        {/* Searching/curating card */}
         {(chatState === "curating" || chatState === "generating") && (
           <SearchingCard animate={true} />
         )}
-
-        {/* No matches */}
         {chatState === "no_matches" && (
           <ExploreCard animate={true} onExplore={handleExplore} />
         )}
-
-        {/* Prompt chips after idle + messages exist */}
-        {chatState === "idle" && displayMessages.length > 0 && (
-          <PromptChips onSelect={handlePromptSelect} count={2} />
-        )}
-
-        {/* Bottom spacer */}
         <View style={{ height: 8 }} />
       </View>
     );
   };
 
+  // Empty state shown in the FlatList area when there are no messages
+  const renderEmpty = () => (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }}>
+      <Animated.View entering={FadeIn.duration(500)} style={{ alignItems: "center" }}>
+        {/* Brand icon */}
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: isDark ? "rgba(201,160,122,0.12)" : "rgba(166,124,82,0.10)",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 20,
+          }}
+        >
+          <Sparkles size={28} color={isDark ? "#C9A07A" : "#A67C52"} />
+        </View>
+
+        <Text className="text-xl font-serif text-foreground dark:text-foreground-dark text-center mb-2">
+          What are we styling today?
+        </Text>
+        <Text className="text-sm text-muted-foreground dark:text-muted-dark-foreground text-center leading-relaxed">
+          Describe an occasion, vibe, or just say hi
+        </Text>
+      </Animated.View>
+    </View>
+  );
+
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 140 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        {/* Chat header */}
-        <View className="flex-row items-center px-4 py-3 border-b border-border/20 dark:border-border-dark/20 bg-background/95 dark:bg-background-dark/95">
-          <TouchableOpacity
-            onPress={handleBackToWelcome}
-            activeOpacity={0.7}
-            className="w-9 h-9 rounded-full items-center justify-center mr-3"
-          >
-            <ArrowLeft size={22} color={isDark ? "#E0D8CC" : "#2D2926"} />
-          </TouchableOpacity>
+        {/* Header */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 0.5,
+            borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+            backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
+          }}
+        >
+          {/* New chat button (only when a thread is active) */}
+          {threadId ? (
+            <TouchableOpacity
+              onPress={handleNewChat}
+              activeOpacity={0.7}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                marginRight: 10,
+              }}
+            >
+              <Plus size={20} color={isDark ? "#C4B8A8" : "#6B635B"} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 36, marginRight: 10 }} />
+          )}
 
-          <View className="w-8 h-8 rounded-full bg-primary dark:bg-primary-dark items-center justify-center mr-2.5">
-            <Sparkles size={14} color="#FAF8F5" />
-          </View>
-
-          <View className="flex-1">
-            <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">
+          {/* Title — centred */}
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text className="text-base font-serif text-foreground dark:text-foreground-dark">
               Nima
             </Text>
-            <Text className="text-xs text-muted-foreground dark:text-muted-dark-foreground">
-              Your AI Stylist
-            </Text>
           </View>
 
+          {/* History button */}
           <TouchableOpacity
             onPress={() => setShowChatHistory(true)}
             activeOpacity={0.7}
-            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+              marginLeft: 10,
+            }}
           >
-            <Clock size={20} color={isDark ? "#C4B8A8" : "#6B635B"} />
+            <Clock size={18} color={isDark ? "#C4B8A8" : "#6B635B"} />
           </TouchableOpacity>
         </View>
 
@@ -606,11 +521,13 @@ export default function AskScreen() {
           data={displayMessages}
           keyExtractor={(item) => item.id}
           renderItem={renderChatItem}
-          contentContainerStyle={{ paddingVertical: 12 }}
-          ListFooterComponent={renderFooter}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingVertical: 16,
+            flexGrow: 1,
+          }}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={hasMessages ? renderFooter : null}
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
