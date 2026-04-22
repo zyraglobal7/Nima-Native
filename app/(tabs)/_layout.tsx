@@ -1,7 +1,6 @@
 import { Tabs, Redirect, router } from "expo-router";
 import { View, ActivityIndicator, StyleSheet, Pressable, Text } from "react-native";
-import { useRef, useState, useContext } from "react";
-import { NavigationContext } from "@react-navigation/core";
+import { useRef, useState } from "react";
 import { Sparkles, BookOpen, User, Camera, Home } from "lucide-react-native";
 import { useTheme } from "@/lib/contexts/ThemeContext";
 import { useConvexAuth } from "convex/react";
@@ -16,10 +15,6 @@ export { RouteErrorBoundary as ErrorBoundary };
 export default function TabLayout() {
   const { isDark } = useTheme();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  // Guard against the transient "Couldn't find a navigation context" error
-  // that can fire during initial mount or Fast Refresh before Expo Router
-  // has wired up the NavigationContainer.
-  const navContext = useContext(NavigationContext);
   const askSheetRef = useRef<AskNimaSheetRef>(null);
   const [isQuickTryOnOpen, setIsQuickTryOnOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("discover");
@@ -28,21 +23,6 @@ export default function TabLayout() {
   // Redirect only after loading is complete and user is not authenticated
   if (!isLoading && !isAuthenticated) {
     return <Redirect href="/" />;
-  }
-
-  if (!navContext) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: isDark ? "#1A1614" : "#FAF8F5",
-        }}
-      >
-        <ActivityIndicator size="large" color="#A67C52" />
-      </View>
-    );
   }
 
   const showFloatingBtn = activeTab === "engine" && !isAskSheetOpen;

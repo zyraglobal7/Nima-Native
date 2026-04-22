@@ -4,12 +4,12 @@ export default {
     slug: "nima-ai",
     version: "1.1.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/clean-mascott.png",
     userInterfaceStyle: "automatic",
     scheme: "shopnima",
     newArchEnabled: true,
     splash: {
-      image: "./assets/nima-mascott.png",
+      image: "./assets/clean-mascott.png",
       resizeMode: "contain",
       backgroundColor: "#FAF8F5",
     },
@@ -31,7 +31,7 @@ export default {
         process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       permissions: ["android.permission.CAMERA"],
       adaptiveIcon: {
-        foregroundImage: "./assets/nima-mascott.png",
+        foregroundImage: "./assets/clean-mascott.png",
         backgroundColor: "#FAF8F5",
       },
       edgeToEdgeEnabled: true,
@@ -55,7 +55,7 @@ export default {
       ],
     },
     web: {
-      favicon: "./assets/favicon.png",
+      favicon: "./assets/nima-mascott.png",
       bundler: "metro",
     },
     plugins: [
@@ -74,7 +74,7 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/mascott.png",
+          icon: "./assets/nima-mascott.png",
           color: "#5C2A33",
           sounds: ["./assets/confident_543.mp3"],
         },

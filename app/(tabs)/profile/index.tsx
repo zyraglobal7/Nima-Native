@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,16 +13,12 @@ import { StyleFitTab } from "@/components/profile/StyleFitTab";
 import { AccountTab } from "@/components/profile/AccountTab";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { NavigationContext } from "@react-navigation/core";
+import { useTheme } from "@/lib/contexts/ThemeContext";
 
 const TABS = ["Settings", "Photos", "Style & Fit", "Account"] as const;
 type TabLabel = (typeof TABS)[number];
 
 export default function ProfileScreen() {
-  // Guard: don't render until the navigation context is available.
-  // Prevents the transient "Couldn't find a navigation context" error
-  // that occurs during initial mount or hot reload.
-  const navContext = useContext(NavigationContext);
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const currentUser = useQuery(api.users.queries.getCurrentUser);
@@ -31,7 +27,7 @@ export default function ProfileScreen() {
     setActiveIndex(index);
   }, []);
 
-  if (!navContext || isLoading || (isAuthenticated && currentUser === undefined)) {
+  if (isLoading || (isAuthenticated && currentUser === undefined)) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
         <ActivityIndicator size="large" color="#A67C52" />
@@ -68,6 +64,9 @@ export default function ProfileScreen() {
   );
 }
 
+// Uses inline `style` instead of `className`. NativeWind's className interop on
+// TouchableOpacity throws "Couldn't find a navigation context" when the
+// className string changes on re-render — switching to style sidesteps it.
 function TabButton({
   active,
   onPress,
@@ -77,19 +76,34 @@ function TabButton({
   onPress: () => void;
   label: TabLabel;
 }) {
+  const { isDark } = useTheme();
+  const activeBg = isDark ? "#1A1614" : "#FAF8F5";
+  const activeFg = isDark ? "#F5F0E8" : "#2D2926";
+  const mutedFg = isDark ? "#8C8078" : "#6B635B";
+
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-1 items-center justify-center py-2.5 rounded-lg ${
-        active ? "bg-background dark:bg-background-dark shadow-sm" : ""
-      }`}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: active ? activeBg : "transparent",
+        shadowColor: active ? "#000" : "transparent",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: active ? 0.05 : 0,
+        shadowRadius: 2,
+        elevation: active ? 1 : 0,
+      }}
     >
       <Text
-        className={`text-sm font-medium ${
-          active
-            ? "text-foreground dark:text-foreground-dark"
-            : "text-muted-foreground dark:text-muted-dark-foreground"
-        }`}
+        style={{
+          fontSize: 14,
+          fontWeight: "500",
+          color: active ? activeFg : mutedFg,
+        }}
       >
         {label}
       </Text>
