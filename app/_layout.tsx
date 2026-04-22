@@ -166,14 +166,6 @@ function LayoutContent() {
           />
           <Stack.Screen name="activity" options={{ headerShown: false }} />
           <Stack.Screen name="explore" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="profile/discarded-looks"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="profile/settings"
-            options={{ headerShown: false }}
-          />
         </Stack>
       </SelectionProvider>
     </UserProvider>

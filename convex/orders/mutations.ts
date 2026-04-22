@@ -205,6 +205,51 @@ export const createOrder = mutation({
       });
     }
 
+     // TEMPORARY: send seller email on order creation (before payment confirmation)
+     
+    /**const sellerMap = new Map<string, (typeof itemsWithDetails)>();
+    for (const detail of itemsWithDetails) {
+      if (!detail.item.sellerId) continue;
+      const key = detail.item.sellerId;
+      if (!sellerMap.has(key)) sellerMap.set(key, []);
+      sellerMap.get(key)!.push(detail);
+    }
+
+    for (const [sellerId, details] of sellerMap) {
+      const seller = await ctx.db.get(sellerId as Id<'sellers'>);
+      if (!seller) continue;
+
+      let sellerEmail = seller.contactEmail;
+      if (!sellerEmail) {
+        const sellerUser = await ctx.db.get(seller.userId);
+        sellerEmail = sellerUser?.email;
+      }
+      if (!sellerEmail) continue;
+
+      await ctx.scheduler.runAfter(0, internal.emails.actions.sendSellerNewOrderEmail, {
+        sellerEmail,
+        sellerName: seller.shopName,
+        orderNumber,
+        orderDate: now,
+        items: details.map((d) => ({
+          name: d.item.name,
+          brand: d.item.brand,
+          quantity: d.cartItem.quantity,
+          price: d.item.price / 100,
+          lineTotal: d.lineTotal / 100,
+          imageUrl: d.imageUrl,
+          size: d.cartItem.selectedSize,
+          color: d.cartItem.selectedColor,
+        })),
+        subtotal: subtotal / 100,
+        total: total / 100,
+        currency: 'KES',
+        buyerCity: args.shippingAddress.city,
+        buyerCountry: args.shippingAddress.country,
+      });
+    }**/
+    // END TEMPORARY
+
     // Schedule Fingo Pay STK Push
     await ctx.scheduler.runAfter(0, internal.orders.actions.callFingoPayOrderSTKPush, {
       orderId,
@@ -213,6 +258,8 @@ export const createOrder = mutation({
       phoneNumber: args.mpesaPhoneNumber,
       narration: `Nima Order ${orderNumber}`,
     });
+
+   
 
     return { orderId, orderNumber, merchantTransactionId };
   },
@@ -276,6 +323,57 @@ export const completeOrderPayment = internalMutation({
       userId: order.userId,
       orderNumber: order.orderNumber,
     });
+
+    // Schedule seller new-order email notifications
+    const orderItems = await ctx.db
+      .query('order_items')
+      .withIndex('by_order', (q) => q.eq('orderId', order._id))
+      .collect();
+
+    // Group items by seller
+    const sellerMap = new Map<string, typeof orderItems>();
+    for (const item of orderItems) {
+      if (!item.sellerId) continue; // Skip Nima-curated items (no seller)
+      const key = item.sellerId;
+      if (!sellerMap.has(key)) sellerMap.set(key, []);
+      sellerMap.get(key)!.push(item);
+    }
+
+    for (const [sellerId, items] of sellerMap) {
+      const seller = await ctx.db.get(sellerId as Id<'sellers'>);
+      if (!seller) continue;
+
+      // Prefer seller contactEmail, fall back to the seller's user account email
+      let sellerEmail = seller.contactEmail;
+      if (!sellerEmail) {
+        const sellerUser = await ctx.db.get(seller.userId);
+        sellerEmail = sellerUser?.email;
+      }
+      if (!sellerEmail) continue;
+
+      await ctx.scheduler.runAfter(0, internal.emails.actions.sendSellerNewOrderEmail, {
+        sellerEmail,
+        sellerName: seller.shopName,
+        orderNumber: order.orderNumber,
+        orderDate: order.createdAt,
+        // Prices are stored as whole KES — NO division needed
+        items: items.map((i) => ({
+          name: i.itemName,
+          brand: i.itemBrand,
+          quantity: i.quantity,
+          price: i.itemPrice,
+          lineTotal: i.lineTotal,
+          imageUrl: i.itemImageUrl,
+          size: i.selectedSize,
+          color: i.selectedColor,
+        })),
+        subtotal: order.subtotal,
+        total: order.total,
+        currency: order.currency,
+        buyerCity: order.shippingAddress.city,
+        buyerCountry: order.shippingAddress.country,
+      });
+    }
 
     return {
       success: true,

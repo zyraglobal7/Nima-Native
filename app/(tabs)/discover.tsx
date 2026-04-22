@@ -536,6 +536,34 @@ export default function DiscoverScreen() {
         </View>
       )}
 
+      {/* Create Look FAB — visible only on My Look tab */}
+      {activeFilter === "my-look" && !showCreateLookSheet && (
+        <View
+          style={{ position: "absolute", bottom: 24, right: 16, zIndex: 50 }}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              handleFilterChange("apparel");
+              setSelectionMode(true);
+            }}
+            className="bg-primary dark:bg-primary-dark px-5 py-3 rounded-full flex-row items-center gap-2"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 10,
+              elevation: 8,
+            }}
+            activeOpacity={0.85}
+          >
+            <Sparkles size={16} color="#FFF" />
+            <Text className="text-sm font-semibold text-primary-foreground dark:text-primary-dark-foreground">
+              Create Look
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Create Look Bottom Sheet */}
       <CreateLookSheet
         isOpen={showCreateLookSheet}

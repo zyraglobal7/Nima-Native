@@ -25,13 +25,17 @@ WebBrowser.maybeCompleteAuthSession();
 
 const WORKOS_CLIENT_ID = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID!;
 
-// Use the redirect URI from environment variable if set, otherwise compute it:
-// - Expo Go: exp://127.0.0.1:8081/--/callback (local) or exp://u.expo.dev/[project-id]/--/callback (tunnel)
-// - Dev build / Production: shopnima://callback
-const REDIRECT_URI = process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI || AuthSession.makeRedirectUri({
-  scheme: 'shopnima',
-  path: 'callback',
-});
+// Redirect URI selection:
+// - Use the env var if set (should be `shopnima://callback` for native,
+//   or `https://www.shopnima.ai/callback` for web production).
+// - On native, NEVER use an HTTPS URL — Android Chrome Custom Tabs won't
+//   intercept HTTPS redirects without matching intent filters, causing the
+//   browser to navigate to the real website. Always use the custom scheme.
+// - Fall back to AuthSession.makeRedirectUri() only when the env var is unset.
+//   NOTE: in Expo Go this produces a dynamic `exp://...` tunnel URL which must
+//   be registered in the WorkOS Dashboard to work.
+const REDIRECT_URI = process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI ||
+  AuthSession.makeRedirectUri({ scheme: 'shopnima', path: 'callback' });
 console.log('====================================');
 console.log('[AUTH] Redirect URI:', REDIRECT_URI);
 console.log('[AUTH] Source:', process.env.EXPO_PUBLIC_WORKOS_REDIRECT_URI ? 'env var' : 'auto-computed');

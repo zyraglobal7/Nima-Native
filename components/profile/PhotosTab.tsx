@@ -23,6 +23,8 @@ export function PhotosTab() {
   const [uploading, setUploading] = useState(false);
   const userImages = useQuery(api.userImages.queries.getUserImages);
 
+  console.log("[PhotosTab DEBUG] userImages:", JSON.stringify(userImages));
+
   const generateUploadUrl = useMutation(
     api.userImages.mutations.generateUploadUrl,
   );

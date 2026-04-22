@@ -23,6 +23,27 @@ const openai = createOpenAI({
 // Initialize Google GenAI for image generation (gemini-3-pro-image-preview)
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_STUDIO_KEY });
 
+const PRIMARY_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+const FALLBACK_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+
+/**
+ * Wraps genAI.models.generateContent with automatic fallback to FALLBACK_IMAGE_MODEL
+ * when the primary model returns a 503 (high demand / unavailable) error.
+ */
+async function generateContentWithFallback(
+  params: Omit<Parameters<typeof genAI.models.generateContent>[0], 'model'>
+): ReturnType<typeof genAI.models.generateContent> {
+  try {
+    return await genAI.models.generateContent({ ...params, model: PRIMARY_IMAGE_MODEL });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
+    if (!is503) throw err;
+    console.warn(`[IMAGE_GEN] Primary model unavailable (503), falling back to ${FALLBACK_IMAGE_MODEL}`);
+    return genAI.models.generateContent({ ...params, model: FALLBACK_IMAGE_MODEL });
+  }
+}
+
 // ============================================
 // TYPES
 // ============================================
@@ -31,8 +52,10 @@ interface UserProfile {
   _id: Id<'users'>;
   gender?: 'male' | 'female' | 'prefer-not-to-say';
   stylePreferences: string[];
+  occasions?: string[];
   budgetRange?: 'low' | 'mid' | 'premium';
   firstName?: string;
+  styleProfile?: string; // AI-generated detailed style profile (set by generateStyleProfile action)
 }
 
 interface ItemForAI {
@@ -75,6 +98,85 @@ function validateNoDuplicateCategories(
     return true;
   });
 }
+
+// ============================================
+// STEP 0: GENERATE DETAILED STYLE PROFILE
+// ============================================
+
+/**
+ * Uses o3-mini to transform raw onboarding inputs (gender, style vibes, occasions, budget)
+ * into a rich, detailed style profile that is stored on the user record and used
+ * in all subsequent AI prompts for look generation.
+ */
+export const generateStyleProfile = internalAction({
+  args: {
+    userId: v.id('users'),
+  },
+  returns: v.string(),
+  handler: async (
+    ctx: ActionCtx,
+    args: { userId: Id<'users'> }
+  ): Promise<string> => {
+    const userProfile = (await ctx.runQuery(internal.workflows.queries.getUserForWorkflow, {
+      userId: args.userId,
+    })) as UserProfile | null;
+
+    if (!userProfile) {
+      throw new Error(`User not found: ${args.userId}`);
+    }
+
+    const genderLabel =
+      userProfile.gender === 'male'
+        ? "Men's Fashion"
+        : userProfile.gender === 'female'
+          ? "Women's Fashion"
+          : 'Gender-neutral / Prefer not to say';
+
+    const budgetLabel =
+      userProfile.budgetRange === 'low'
+        ? 'Smart Saver (up to KES 2,000 per item)'
+        : userProfile.budgetRange === 'premium'
+          ? 'Treat Yourself (KES 10,000+ per item)'
+          : 'Best of Both (KES 2,000–10,000 per item)';
+
+    const prompt = `You are an expert fashion stylist. Based on the user's onboarding preferences below, write a detailed style profile that will guide an AI to select the perfect outfit combinations for them.
+
+User Preferences:
+- Shopping for: ${genderLabel}
+- Style vibes they selected: ${userProfile.stylePreferences.join(', ') || 'not specified'}
+- Occasions they dress for: ${userProfile.occasions?.join(', ') || 'various occasions'}
+- Budget range: ${budgetLabel}
+- Name: ${userProfile.firstName || 'the user'}
+
+Write a detailed 2–3 paragraph style profile that covers:
+1. Their core aesthetic and what visual style identity this implies (silhouettes, vibe, personality)
+2. A typical outfit formula that would work for them (e.g. "fitted top + wide-leg trousers + minimal accessories")
+3. Colours, textures, and fabrics that would suit this style
+4. How their occasion mix should influence item selection
+5. Budget-smart styling tips specific to their range
+
+Be specific and actionable — this profile will be fed directly into an AI stylist to select real clothing items. Do not include generic advice. Focus on concrete styling direction.`;
+
+    console.log(`[WORKFLOW:ONBOARDING] Step 0: Generating detailed style profile for user ${args.userId}`);
+
+    const result = await generateText({
+      model: openai('o3-mini'),
+      prompt,
+    });
+
+    const styleProfile = result.text.trim();
+
+    console.log(`[WORKFLOW:ONBOARDING] Step 0 complete: style profile generated (${styleProfile.length} chars)`);
+
+    // Persist to user record
+    await ctx.runMutation(internal.workflows.mutations.saveStyleProfile, {
+      userId: args.userId,
+      styleProfile,
+    });
+
+    return styleProfile;
+  },
+});
 
 // ============================================
 // STEP 1: AI ITEM SELECTION
@@ -131,7 +233,10 @@ export const selectItemsForLooks = internalAction({
     console.log(`[WORKFLOW:ONBOARDING] User profile:`, {
       gender: userProfile.gender,
       stylePreferences: userProfile.stylePreferences,
+      occasions: userProfile.occasions,
       budgetRange: userProfile.budgetRange,
+      hasStyleProfile: !!userProfile.styleProfile,
+      styleProfileLength: userProfile.styleProfile?.length ?? 0,
     });
 
     // Determine user's gender for filtering (male/female get gender-specific + unisex, others get all)
@@ -170,8 +275,23 @@ export const selectItemsForLooks = internalAction({
     // Deduplicate items
     const deduplicatedItems = Array.from(new Map(allItems.map((item) => [item._id, item])).values());
 
+    // Hard gender filter — enforced in code regardless of DB tags or AI behavior
+    // Prevents dresses/skirts tagged as 'unisex' from appearing in male users' looks
+    const MALE_EXCLUDED_CATEGORIES = new Set(['dress']);
+    const FEMALE_EXCLUDED_CATEGORIES = new Set<string>(); // no exclusions for female
+    const genderFilteredItems = deduplicatedItems.filter((item) => {
+      if (userGender === 'male') return !MALE_EXCLUDED_CATEGORIES.has(item.category);
+      if (userGender === 'female') return !FEMALE_EXCLUDED_CATEGORIES.has(item.category);
+      return true;
+    });
+
+    if (userGender === 'male') {
+      const removed = deduplicatedItems.length - genderFilteredItems.length;
+      if (removed > 0) console.log(`[WORKFLOW:ONBOARDING] Hard-filtered ${removed} female-only items from male catalog`);
+    }
+
     // Filter out excluded items (from previous looks)
-    const uniqueItems = deduplicatedItems.filter((item) => !excludeSet.has(item._id));
+    const uniqueItems = genderFilteredItems.filter((item) => !excludeSet.has(item._id));
     
     if (excludeSet.size > 0) {
       console.log(`[WORKFLOW:ONBOARDING] After exclusions: ${uniqueItems.length} items available (excluded ${deduplicatedItems.length - uniqueItems.length})`);
@@ -184,23 +304,26 @@ export const selectItemsForLooks = internalAction({
     }
 
     // Build prompt for AI - Generate 3 looks with smart outfit composition
-    const systemPrompt = `You are Nima, an expert fashion stylist with a fun, energetic personality. 
+    const systemPrompt = `You are Nima, an expert fashion stylist with a fun, energetic personality.
 Your task is to create 3 unique, stylish outfit combinations (looks) for a new user based on their preferences.
 
 User Profile:
 - Gender preference: ${userProfile.gender || 'not specified'}
 - Style preferences: ${userProfile.stylePreferences.join(', ') || 'casual'}
+- Occasions they dress for: ${userProfile.occasions?.join(', ') || 'various occasions'}
 - Budget range: ${userProfile.budgetRange || 'mid'}
 - Name: ${userProfile.firstName || 'friend'}
+${userProfile.styleProfile ? `\nDetailed Style Profile (use this as the primary guide for their aesthetic):\n${userProfile.styleProfile}` : ''}
 
 Available Items (use these item IDs exactly):
 ${uniqueItems.map((item) => `- ID: ${item._id}, Name: "${item.name}", Category: ${item.category}, Colors: ${item.colors.join(', ')}, Tags: ${item.tags.join(', ')}, Price: ${item.price} ${item.currency}`).join('\n')}
 
-CRITICAL GENDER RULES (MUST FOLLOW):
-${userProfile.gender === 'male' ? `- User is MALE: NEVER include dresses, skirts, blouses, heels, or feminine clothing.
-- ONLY use items categorized as: top, bottom, outerwear, shoes, accessory, bag, jewelry (no dress category for males!)` : ''}
-${userProfile.gender === 'female' ? `- User is FEMALE: You may include dresses, skirts, blouses, heels, and any clothing items.` : ''}
-${!userProfile.gender || userProfile.gender === 'prefer-not-to-say' ? `- Gender not specified: Use gender-neutral items only. Prefer tops, bottoms, outerwear, and unisex accessories.` : ''}
+CRITICAL GENDER RULES (MUST FOLLOW — catalog is already pre-filtered):
+${userProfile.gender === 'male' ? `- User is MALE. The catalog has already been filtered to male/unisex items only.
+- You MUST NOT reference any item with category "dress". No dresses, skirts, or feminine clothing under any circumstance.
+- Valid categories for male: top, bottom, outerwear, shoes, accessory, bag, jewelry` : ''}
+${userProfile.gender === 'female' ? `- User is FEMALE. All catalog items are appropriate. Dresses, skirts, blouses, and heels are all valid choices.` : ''}
+${!userProfile.gender || userProfile.gender === 'prefer-not-to-say' ? `- Gender not specified. Prefer gender-neutral pieces: tops, bottoms, outerwear, unisex shoes and accessories.` : ''}
 
 SMART OUTFIT COMPOSITION RULES:
 1. Create exactly 3 different outfit looks with VARIED item counts (not all the same size!)
@@ -216,7 +339,7 @@ SMART OUTFIT COMPOSITION RULES:
 4. Items in each look must complement each other in style and color
 5. Use ONLY the item IDs from the available items list
 6. Give each look a catchy, creative name
-7. Include variety in occasions: casual, work, date night, weekend, brunch, etc.
+7. Prioritize the occasions the user dresses for (listed in their profile above); include variety across those occasions
 8. NEVER repeat items across the 3 looks
 9. CRITICAL - NO DUPLICATE CATEGORIES IN A SINGLE LOOK:
    - Each look should have AT MOST ONE item per category type
@@ -605,15 +728,16 @@ export const generateLookImage = internalAction({
 
       console.log(`[WORKFLOW:ONBOARDING] Look has ${lookData.items.length} items`);
 
-      // Fetch user image and all item images in PARALLEL for faster processing
-      console.log(`[WORKFLOW:ONBOARDING] Fetching user image and ${lookData.items.length} item images in parallel...`);
+      // Fetch user image, catalog item images, and wardrobe item images in PARALLEL
+      const totalImages = lookData.items.length + (lookData.wardrobeItems?.length ?? 0);
+      console.log(`[WORKFLOW:ONBOARDING] Fetching user image + ${totalImages} item images in parallel...`);
       const fetchStartTime = Date.now();
 
-      // Prepare all fetch promises
       const userImagePromise = fetch(userImage.url)
         .then((res) => res.arrayBuffer())
         .then((buffer) => Buffer.from(buffer).toString('base64'));
 
+      // Catalog item image promises
       const itemImagePromises = lookData.items
         .filter((item) => item.primaryImageUrl)
         .map(async (item) => {
@@ -621,41 +745,61 @@ export const generateLookImage = internalAction({
             const response = await fetch(item.primaryImageUrl!);
             const buffer = await response.arrayBuffer();
             const base64 = Buffer.from(buffer).toString('base64');
-            
             const colorStr = item.colors.length > 0 ? item.colors.join('/') : '';
             const description = `${colorStr} ${item.name}${item.brand ? ` by ${item.brand}` : ''}`.trim();
-            
-            return {
-              base64,
-              name: item.name,
-              description,
-            };
+            return { base64, name: item.name, description };
           } catch (imgError) {
             console.warn(`[WORKFLOW:ONBOARDING] Failed to fetch item image for ${item.name}:`, imgError);
             return null;
           }
         });
 
+      // Wardrobe item image promises (background-removed images from Convex storage)
+      const wardrobeImagePromises = (lookData.wardrobeItems ?? [])
+        .filter((wi) => wi.imageUrl)
+        .map(async (wi) => {
+          try {
+            const response = await fetch(wi.imageUrl!);
+            const buffer = await response.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            const description = `${wi.color} ${wi.description} (user's own wardrobe item)`.trim();
+            return { base64, name: wi.description, description };
+          } catch (imgError) {
+            console.warn(`[WORKFLOW:ONBOARDING] Failed to fetch wardrobe item image for ${wi.description}:`, imgError);
+            return null;
+          }
+        });
+
       // Execute all fetches in parallel
-      const [userImageBase64, ...itemImageResults] = await Promise.all([
+      const [userImageBase64, ...allImageResults] = await Promise.all([
         userImagePromise,
         ...itemImagePromises,
+        ...wardrobeImagePromises,
       ]);
 
-      // Filter out failed fetches
-      const itemImagesBase64 = itemImageResults.filter(
+      // Filter out failed fetches — catalog + wardrobe images combined
+      const itemImagesBase64 = allImageResults.filter(
         (item): item is { base64: string; name: string; description: string } => item !== null
       );
 
       const fetchTime = Date.now() - fetchStartTime;
-      console.log(`[WORKFLOW:ONBOARDING] Fetched user + ${itemImagesBase64.length} item images in ${fetchTime}ms (parallel)`);
+      console.log(`[WORKFLOW:ONBOARDING] Fetched user + ${itemImagesBase64.length} item images (${lookData.items.length} catalog + ${lookData.wardrobeItems?.length ?? 0} wardrobe) in ${fetchTime}ms`);
+
+      // Log all items being sent to Gemini for image generation
+      console.log(`[WORKFLOW:IMAGE_GEN] Items sent to Gemini for look ${args.lookId}:`);
+      lookData.items.forEach((item, i) => {
+        console.log(`  [CATALOG ${i}] ${item.name} (${item.category}, colors: ${item.colors.join('/')})`);
+      });
+      (lookData.wardrobeItems ?? []).forEach((wi, i) => {
+        console.log(`  [WARDROBE ${i}] ${wi.description} (${wi.category}, color: ${wi.color})`);
+      });
 
       // Generate the prompt using Vercel AI SDK for better prompt quality
       const outfitDescription = itemImagesBase64.map((item) => item.description).join(', ');
       
       const promptResult = await generateText({
         model: openai('gpt-4o'),
-        prompt: `You are a fashion photography director. Write a detailed image generation prompt for a virtual try-on photo.
+        prompt: `You are a fashion photography director. Write a detailed image generation prompt for a virtual try-on photo - their identity is crucial and must be maintained.
 
 The person in the reference photo should be shown wearing these clothing items:
 ${itemImagesBase64.map((item, i) => `${i + 1}. ${item.description}`).join('\n')}
@@ -715,9 +859,8 @@ Important:
 
       console.log(`[WORKFLOW:ONBOARDING] Calling Gemini image generation with ${contents.length - 1} reference images...`);
 
-      // Call Google GenAI with gemini-3-pro-image-preview for high-quality image generation
-      const response = await genAI.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+      // Call Google GenAI with primary model, falling back on 503
+      const response = await generateContentWithFallback({
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
@@ -743,11 +886,10 @@ Important:
         console.warn(`[WORKFLOW:ONBOARDING] No image from first attempt, trying simpler approach...`);
         
         // Try with just text prompt (the model might generate based on description)
-        const simpleResponse = await genAI.models.generateContent({
-          model: "gemini-3-pro-image-preview", 
+        const simpleResponse = await generateContentWithFallback({
           contents: [
             {
-              text: `Generate a professional fashion photograph of THIS PERSON (shown in the first reference image) wearing: ${outfitDescription}. 
+              text: `Generate a professional fashion photograph of THIS PERSON (shown in the first reference image) wearing: ${outfitDescription}.
 Make it look like a high-end fashion editorial photo with clean background and natural lighting.
 Keep the person's identity, face, and body type EXACTLY as shown in the reference image.`,
             },
@@ -986,9 +1128,8 @@ Important:
 
       console.log(`[WORKFLOW:ITEM_TRYON] Calling Gemini image generation...`);
 
-      // Call Google GenAI
-      const response = await genAI.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+      // Call Google GenAI with primary model, falling back on 503
+      const response = await generateContentWithFallback({
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
@@ -1013,11 +1154,10 @@ Important:
       if (!generatedImageBase64) {
         console.warn(`[WORKFLOW:ITEM_TRYON] No image from first attempt, trying simpler approach...`);
 
-        const simpleResponse = await genAI.models.generateContent({
-          model: 'gemini-3-pro-image-preview',
+        const simpleResponse = await generateContentWithFallback({
           contents: [
             {
-              text: `Generate a professional fashion photograph of a person wearing: ${itemDescription}. 
+              text: `Generate a professional fashion photograph of a person wearing: ${itemDescription}.
 Make it look like a high-end fashion editorial photo with clean background and natural lighting.
 Show ONLY this single item prominently.`,
             },
@@ -1080,6 +1220,238 @@ Show ONLY this single item prominently.`,
         success: false as const,
         error: errorMessage,
       };
+    }
+  },
+});
+
+/**
+ * Generate a try-on image for QuickTry (camera-captured item)
+ * User's primary image + camera-captured item photo
+ */
+export const generateQuickTryOnImage = internalAction({
+  args: {
+    quickTryOnId: v.id('quick_try_ons'),
+    userId: v.id('users'),
+  },
+  returns: v.union(
+    v.object({ success: v.literal(true), storageId: v.id('_storage') }),
+    v.object({ success: v.literal(false), error: v.string() })
+  ),
+  handler: async (
+    ctx: ActionCtx,
+    args: { quickTryOnId: Id<'quick_try_ons'>; userId: Id<'users'> }
+  ): Promise<
+    | { success: true; storageId: Id<'_storage'> }
+    | { success: false; error: string }
+  > => {
+    console.log(`[QUICK_TRYON] Starting generation for ${args.quickTryOnId}`);
+
+    try {
+      // Mark as processing
+      await ctx.runMutation(internal.quickTryOns.mutations.updateQuickTryOnStatus, {
+        quickTryOnId: args.quickTryOnId,
+        status: 'processing',
+      });
+
+      // Get the quick try-on record to get image IDs
+      const tryOnRecord = await ctx.runQuery(internal.quickTryOns.queries.getQuickTryOnInternal, {
+        quickTryOnId: args.quickTryOnId,
+      });
+
+      if (!tryOnRecord) throw new Error('Quick try-on record not found');
+
+      // Get user's primary image URL
+      const userImage = await ctx.runQuery(internal.workflows.queries.getUserPrimaryImage, {
+        userId: args.userId,
+      });
+
+      if (!userImage?.url) throw new Error('User primary image not found');
+
+      // Get the captured item image URL
+      const capturedItemUrl = await ctx.storage.getUrl(tryOnRecord.capturedItemStorageId);
+      if (!capturedItemUrl) throw new Error('Captured item image not found');
+
+      console.log(`[QUICK_TRYON] Fetching images...`);
+
+      const [userImageBase64, capturedItemBase64] = await Promise.all([
+        fetch(userImage.url)
+          .then((r) => r.arrayBuffer())
+          .then((b) => Buffer.from(b).toString('base64')),
+        fetch(capturedItemUrl)
+          .then((r) => r.arrayBuffer())
+          .then((b) => Buffer.from(b).toString('base64')),
+      ]);
+
+      // Generate the try-on image with primary model, falling back on 503
+      const response = await generateContentWithFallback({
+        contents: [
+          {
+            text: `Virtual try-on: Show the person from Reference Image 1 wearing the clothing item captured in Reference Image 2. Keep the person's face, body, and identity exactly as shown. Professional fashion photo, clean background.`,
+          },
+          { inlineData: { mimeType: 'image/jpeg', data: userImageBase64 } },
+          { inlineData: { mimeType: 'image/jpeg', data: capturedItemBase64 } },
+        ],
+        config: { responseModalities: ['TEXT', 'IMAGE'] },
+      });
+
+      const parts = response.candidates?.[0]?.content?.parts;
+      let generatedImageBase64: string | null = null;
+
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            generatedImageBase64 = part.inlineData.data;
+            break;
+          }
+        }
+      }
+
+      if (!generatedImageBase64) {
+        throw new Error('Image generation failed - model returned no image');
+      }
+
+      const imageBlob = new Blob([Buffer.from(generatedImageBase64, 'base64')], { type: 'image/png' });
+      const storageId: Id<'_storage'> = await ctx.storage.store(imageBlob);
+
+      await ctx.runMutation(internal.quickTryOns.mutations.updateQuickTryOnStatus, {
+        quickTryOnId: args.quickTryOnId,
+        status: 'completed',
+        resultStorageId: storageId,
+      });
+
+      console.log(`[QUICK_TRYON] Generation complete`);
+      return { success: true, storageId };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[QUICK_TRYON] Failed:`, errorMessage);
+
+      await ctx.runMutation(internal.quickTryOns.mutations.updateQuickTryOnStatus, {
+        quickTryOnId: args.quickTryOnId,
+        status: 'failed',
+        errorMessage,
+      });
+
+      return { success: false, error: errorMessage };
+    }
+  },
+});
+
+/**
+ * Generate a try-on image for a seller try-on link
+ * Customer's uploaded photo + seller's catalog item image
+ */
+export const generateSellerTryOnImage = internalAction({
+  args: {
+    sellerTryOnId: v.id('seller_try_ons'),
+    itemId: v.id('items'),
+  },
+  returns: v.union(
+    v.object({ success: v.literal(true), storageId: v.id('_storage') }),
+    v.object({ success: v.literal(false), error: v.string() })
+  ),
+  handler: async (
+    ctx: ActionCtx,
+    args: { sellerTryOnId: Id<'seller_try_ons'>; itemId: Id<'items'> }
+  ): Promise<
+    | { success: true; storageId: Id<'_storage'> }
+    | { success: false; error: string }
+  > => {
+    console.log(`[SELLER_TRYON] Starting generation for ${args.sellerTryOnId}`);
+
+    try {
+      await ctx.runMutation(internal.sellerTryOns.mutations.updateSellerTryOnStatus, {
+        sellerTryOnId: args.sellerTryOnId,
+        status: 'processing',
+      });
+
+      // Get seller try-on record
+      const tryOnRecord = await ctx.runQuery(internal.sellerTryOns.queries.getSellerTryOnInternal, {
+        sellerTryOnId: args.sellerTryOnId,
+      });
+
+      if (!tryOnRecord) throw new Error('Seller try-on record not found');
+
+      // Get item data with primary image
+      const itemData = await ctx.runQuery(internal.workflows.queries.getItemWithPrimaryImage, {
+        itemId: args.itemId,
+      });
+
+      if (!itemData) throw new Error('Item not found');
+
+      // Get customer image URL
+      const customerImageUrl = await ctx.storage.getUrl(tryOnRecord.customerImageStorageId);
+      if (!customerImageUrl) throw new Error('Customer image not found');
+
+      console.log(`[SELLER_TRYON] Fetching images for item: ${itemData.item.name}`);
+
+      const [customerBase64, itemImageBase64] = await Promise.all([
+        fetch(customerImageUrl)
+          .then((r) => r.arrayBuffer())
+          .then((b) => Buffer.from(b).toString('base64')),
+        itemData.primaryImageUrl
+          ? fetch(itemData.primaryImageUrl)
+              .then((r) => r.arrayBuffer())
+              .then((b) => Buffer.from(b).toString('base64'))
+          : Promise.resolve(null),
+      ]);
+
+      const colorStr = itemData.item.colors.length > 0 ? itemData.item.colors.join('/') : '';
+      const itemDescription = `${colorStr} ${itemData.item.name}${itemData.item.brand ? ` by ${itemData.item.brand}` : ''}`.trim();
+
+      const contents: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+        {
+          text: `Virtual try-on: Show the person from Reference Image 1 wearing the ${itemDescription} shown in Reference Image 2. Keep the person's face, body, and identity exactly as shown. Professional fashion photo, clean background.`,
+        },
+        { inlineData: { mimeType: 'image/jpeg', data: customerBase64 } },
+      ];
+
+      if (itemImageBase64) {
+        contents.push({ inlineData: { mimeType: 'image/jpeg', data: itemImageBase64 } });
+      }
+
+      const response = await generateContentWithFallback({
+        contents,
+        config: { responseModalities: ['TEXT', 'IMAGE'] },
+      });
+
+      const parts = response.candidates?.[0]?.content?.parts;
+      let generatedImageBase64: string | null = null;
+
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            generatedImageBase64 = part.inlineData.data;
+            break;
+          }
+        }
+      }
+
+      if (!generatedImageBase64) {
+        throw new Error('Image generation failed - model returned no image');
+      }
+
+      const imageBlob = new Blob([Buffer.from(generatedImageBase64, 'base64')], { type: 'image/png' });
+      const storageId: Id<'_storage'> = await ctx.storage.store(imageBlob);
+
+      await ctx.runMutation(internal.sellerTryOns.mutations.updateSellerTryOnStatus, {
+        sellerTryOnId: args.sellerTryOnId,
+        status: 'completed',
+        resultStorageId: storageId,
+      });
+
+      console.log(`[SELLER_TRYON] Generation complete`);
+      return { success: true, storageId };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[SELLER_TRYON] Failed:`, errorMessage);
+
+      await ctx.runMutation(internal.sellerTryOns.mutations.updateSellerTryOnStatus, {
+        sellerTryOnId: args.sellerTryOnId,
+        status: 'failed',
+        errorMessage,
+      });
+
+      return { success: false, error: errorMessage };
     }
   },
 });

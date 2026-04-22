@@ -896,6 +896,135 @@ export const createLookFromSelectedItems = mutation({
 });
 
 /**
+ * Create a look from the user's own wardrobe items (no catalog items).
+ * Used by the "Try it on" CTA on daily wardrobe recommendation cards.
+ */
+export const createLookFromWardrobeItems = mutation({
+  args: {
+    wardrobeItemIds: v.array(v.id('wardrobeItems')),
+    occasion: v.optional(v.string()),
+    recommendationId: v.optional(v.id('recommendations')),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    lookId: v.optional(v.id('looks')),
+    publicId: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (
+    ctx: MutationCtx,
+    args: {
+      wardrobeItemIds: Id<'wardrobeItems'>[];
+      occasion?: string;
+      recommendationId?: Id<'recommendations'>;
+    }
+  ): Promise<{
+    success: boolean;
+    lookId?: Id<'looks'>;
+    publicId?: string;
+    error?: string;
+  }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { success: false, error: 'Please sign in to try on looks.' };
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_workos_user_id', (q) => q.eq('workosUserId', identity.subject))
+      .unique();
+    if (!user) return { success: false, error: 'User not found.' };
+
+    if (args.wardrobeItemIds.length < 2) {
+      return { success: false, error: 'Need at least 2 wardrobe items.' };
+    }
+    if (args.wardrobeItemIds.length > 6) {
+      return { success: false, error: 'Maximum 6 items per look.' };
+    }
+
+    // Verify ownership of every wardrobe item
+    const styleTags: string[] = [];
+    for (const id of args.wardrobeItemIds) {
+      const item = await ctx.db.get(id);
+      if (!item || item.userId !== user._id) {
+        return { success: false, error: 'Wardrobe item not found.' };
+      }
+      for (const tag of item.tags) {
+        if (!styleTags.includes(tag)) styleTags.push(tag);
+      }
+    }
+
+    // Rate limit (shared with createLookFromSelectedItems pattern)
+    const oneHour = 60 * 60 * 1000;
+    const recentLooks = await ctx.db
+      .query('looks')
+      .withIndex('by_creator_and_status', (q) => q.eq('creatorUserId', user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('createdBy'), 'user'),
+          q.gt(q.field('createdAt'), Date.now() - oneHour)
+        )
+      )
+      .collect();
+
+    if (recentLooks.length >= 10) {
+      return { success: false, error: 'Rate limit exceeded. Try again in a bit.' };
+    }
+
+    // Credit check
+    const creditResult = await ctx.runMutation(internal.credits.mutations.deductCredit, {
+      userId: user._id,
+      count: 1,
+    });
+    if (!creditResult.success) {
+      return { success: false, error: 'insufficient_credits' };
+    }
+
+    const now = Date.now();
+    const publicId = generatePublicId('look');
+    const lookId = await ctx.db.insert('looks', {
+      publicId,
+      itemIds: [],
+      wardrobeItemIds: args.wardrobeItemIds,
+      totalPrice: 0,
+      currency: 'KES',
+      styleTags: styleTags.slice(0, 5),
+      occasion: args.occasion,
+      targetGender: (user.gender === 'male' || user.gender === 'female') ? user.gender : 'unisex',
+      targetBudgetRange: user.budgetRange,
+      isActive: true,
+      isFeatured: false,
+      isPublic: false,
+      sharedWithFriends: false,
+      viewCount: 0,
+      saveCount: 0,
+      generationStatus: 'pending',
+      status: 'pending',
+      createdBy: 'user',
+      creatorUserId: user._id,
+      creationSource: 'apparel',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Mark the source recommendation as tried_on
+    if (args.recommendationId) {
+      const rec = await ctx.db.get(args.recommendationId);
+      if (rec && rec.userId === user._id) {
+        await ctx.db.patch(args.recommendationId, { status: 'tried_on' });
+      }
+    }
+
+    await ctx.scheduler.runAfter(0, internal.workflows.actions.generateLookImage, {
+      lookId,
+      userId: user._id,
+    });
+
+    return { success: true, lookId, publicId };
+  },
+});
+
+/**
  * Update look visibility (public/friends/private)
  * Users can only update their own looks
  */

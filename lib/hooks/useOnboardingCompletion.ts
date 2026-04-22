@@ -173,6 +173,17 @@ export function useOnboardingCompletion() {
     }
 
     if (currentUser.onboardingCompleted) {
+      // If images weren't claimed yet (app was killed mid-wizard), claim them now
+      if (!onboardingState?.hasImages) {
+        const token = await AsyncStorage.getItem('nima-onboarding-token');
+        if (token) {
+          try {
+            await claimOnboardingImages({ onboardingToken: token });
+          } catch {
+            // Non-fatal — images may already be claimed or token may have expired
+          }
+        }
+      }
       await clearStoredOnboardingData();
       setCompleted(true);
       return;

@@ -16,10 +16,24 @@ import Toast from "react-native-toast-message";
 export function FriendsList() {
   const [removingId, setRemovingId] = useState<Id<"friendships"> | null>(null);
 
-  const friends = useQuery(api.friends.queries.getFriends);
+  const friendsRaw = useQuery(api.friends.queries.getFriends);
   const pendingRequests = useQuery(
     api.friends.queries.getPendingFriendRequests,
   );
+
+  // Dedupe: the backend query returns the same friendship twice when a row has
+  // requesterId === addresseeId, or when two accepted rows exist between the
+  // same pair of users. Until that's cleaned up server-side, drop duplicates
+  // here so React doesn't skip-render items with colliding keys.
+  const friends = React.useMemo(() => {
+    if (!friendsRaw) return friendsRaw;
+    const seen = new Set<string>();
+    return friendsRaw.filter((f) => {
+      if (seen.has(f._id)) return false;
+      seen.add(f._id);
+      return true;
+    });
+  }, [friendsRaw]);
 
   const removeFriend = useMutation(api.friends.mutations.removeFriend);
   const acceptRequest = useMutation(api.friends.mutations.acceptFriendRequest);

@@ -12,6 +12,7 @@
 import { v } from 'convex/values';
 import { workflow } from './index';
 import { internal } from '../_generated/api';
+import type { WorkflowCtx } from '@convex-dev/workflow';
 import type { Id } from '../_generated/dataModel';
 
 /**
@@ -51,7 +52,7 @@ export const generateMoreLooksWorkflow = workflow.define({
  * Used by both onboarding and "generate more" flows
  */
 async function runLookGenerationWorkflow(
-  ctx: Parameters<Parameters<typeof workflow.define>[0]['handler']>[0],
+  ctx: WorkflowCtx,
   userId: Id<'users'>,
   excludeItemIds: string[],
   workflowName: string
@@ -64,6 +65,16 @@ async function runLookGenerationWorkflow(
     console.log(`[WORKFLOW:${workflowName}] Excluding ${excludeItemIds.length} items from previous looks`);
   }
   console.log(`[WORKFLOW:${workflowName}] ========================================`);
+
+  // ========================================
+  // STEP 0: Generate Detailed Style Profile
+  // ========================================
+  console.log(`[WORKFLOW:${workflowName}] Step 0: Generating detailed style profile...`);
+  await ctx.runAction(
+    internal.workflows.actions.generateStyleProfile,
+    { userId },
+    { retry: true }
+  );
 
   // ========================================
   // STEP 1: Curate Personalized Looks
@@ -102,7 +113,7 @@ async function runLookGenerationWorkflow(
 
   for (const lookComp of lookCompositions) {
     // Convert string IDs to proper Id types
-    const itemIds = lookComp.itemIds.map((id) => id as Id<'items'>);
+    const itemIds = lookComp.itemIds.map((id: string) => id as Id<'items'>);
 
     const lookId: Id<'looks'> = await ctx.runMutation(
       internal.workflows.mutations.createPendingLook,
@@ -146,7 +157,7 @@ async function runLookGenerationWorkflow(
   let successCount = 0;
   let failureCount = 0;
 
-  results.forEach((result, index) => {
+  results.forEach((result: { success: boolean; error?: string }, index: number) => {
     const lookId = createdLookIds[index];
     if (result.success) {
       successCount++;

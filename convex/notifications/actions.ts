@@ -356,6 +356,42 @@ export const sendLookInteractionNotification = internalAction({
 });
 
 /**
+ * Send daily matches notification — fired after the morning wardrobe recs run.
+ */
+export const sendDailyMatchesNotification = internalAction({
+  args: {
+    userId: v.id('users'),
+    count: v.number(),
+  },
+  returns: v.null(),
+  handler: async (
+    ctx: ActionCtx,
+    args: { userId: Id<'users'>; count: number }
+  ): Promise<null> => {
+    const tokens = await ctx.runMutation(internal.notifications.mutations.getUserPushTokens, {
+      userId: args.userId,
+    });
+
+    if (tokens.length === 0) {
+      console.log(`[PUSH] No push tokens for user ${args.userId}, skipping daily matches notification`);
+      return null;
+    }
+
+    const title = '✨ Your Matches for Today';
+    const body = args.count === 1
+      ? 'Nima styled one fresh combo from your wardrobe. Tap to try it on.'
+      : `Nima styled ${args.count} fresh combos from your wardrobe. Tap to try them on.`;
+
+    await sendExpoPushNotifications(tokens, title, body, {
+      type: 'daily_matches',
+      count: args.count,
+    }, 'looks');
+
+    return null;
+  },
+});
+
+/**
  * Send push notification when someone recreates a user's look
  * Triggered from the recreateLook mutation
  */
